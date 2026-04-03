@@ -1,0 +1,1534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BuyerSide — Buyer's Brief: 14 Riverview Tce, Chelmer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --navy: #0d1b2a;
+    --navy-mid: #152233;
+    --navy-light: #1e3045;
+    --navy-deep: #080f18;
+    --cream: #f5f0e8;
+    --cream-dim: #d8d2c6;
+    --amber: #d4860a;
+    --amber-light: #f0a020;
+    --amber-pale: rgba(212,134,10,0.08);
+    --red: #c0392b;
+    --green: #1a7a4a;
+    --green-light: #22a05a;
+    --text-primary: #f0ebe2;
+    --text-secondary: #8da0b3;
+    --text-dim: #4a6278;
+    --border: #1e3a54;
+    --border-light: #2a4a65;
+    --rule: rgba(213,190,150,0.12);
+    --rule-strong: rgba(213,190,150,0.22);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--navy-deep);
+    color: var(--text-primary);
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.65;
+    min-height: 100vh;
+  }
+
+  /* ─── TOP BAR ─── */
+  .topbar {
+    background: rgba(8,15,24,0.92);
+    border-bottom: 1px solid var(--rule);
+    padding: 0 32px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    backdrop-filter: blur(16px);
+  }
+
+  .logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 19px;
+    color: var(--cream);
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-badge {
+    background: var(--amber);
+    color: var(--navy);
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    padding: 2px 7px;
+    border-radius: 2px;
+    text-transform: uppercase;
+  }
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .btn-pdf {
+    border: 1px solid var(--border-light);
+    color: var(--text-secondary);
+    background: transparent;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 7px 14px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-pdf:hover { border-color: var(--amber); color: var(--amber); }
+
+  /* ─── COVER SECTION ─── */
+  .cover {
+    background: linear-gradient(160deg, #0f1e30 0%, var(--navy-deep) 60%);
+    border-bottom: 1px solid var(--rule-strong);
+    padding: 52px 32px 44px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cover::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--amber) 0%, var(--amber-light) 50%, transparent 100%);
+  }
+
+  .cover::after {
+    content: 'BUYER'S BRIEF';
+    position: absolute;
+    right: -20px;
+    top: 50%;
+    transform: translateY(-50%) rotate(90deg);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    color: rgba(212,134,10,0.08);
+    white-space: nowrap;
+  }
+
+  .cover-inner {
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  .cover-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .cover-tag::before {
+    content: '';
+    display: block;
+    width: 28px;
+    height: 1px;
+    background: var(--amber);
+  }
+
+  .cover-address {
+    font-family: 'DM Serif Display', serif;
+    font-size: 38px;
+    color: var(--cream);
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+    margin-bottom: 20px;
+  }
+
+  .cover-meta-row {
+    display: flex;
+    gap: 0;
+    flex-wrap: wrap;
+    border: 1px solid var(--border);
+    display: inline-flex;
+    margin-bottom: 28px;
+  }
+
+  .cover-meta-item {
+    padding: 10px 20px;
+    border-right: 1px solid var(--border);
+  }
+
+  .cover-meta-item:last-child { border-right: none; }
+
+  .cover-meta-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 3px;
+  }
+
+  .cover-meta-value {
+    font-size: 14px;
+    color: var(--cream);
+    font-weight: 500;
+  }
+
+  .cover-meta-value.amber { color: var(--amber-light); }
+
+  .cover-summary {
+    font-size: 16px;
+    color: var(--text-secondary);
+    line-height: 1.65;
+    max-width: 680px;
+    border-left: 2px solid var(--amber);
+    padding-left: 20px;
+  }
+
+  .cover-summary strong { color: var(--cream); font-weight: 500; }
+
+  /* ─── NAV RAIL (TOC) ─── */
+  .page-layout {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    max-width: 1060px;
+    margin: 0 auto;
+    padding: 0 32px;
+    gap: 40px;
+    align-items: start;
+  }
+
+  .toc {
+    position: sticky;
+    top: 68px;
+    padding: 28px 0;
+  }
+
+  .toc-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 14px;
+  }
+
+  .toc-item {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 6px 0;
+    text-decoration: none;
+    color: var(--text-dim);
+    font-size: 12px;
+    border-left: 2px solid transparent;
+    padding-left: 10px;
+    margin-left: -10px;
+    transition: all 0.15s;
+    cursor: pointer;
+    line-height: 1.35;
+  }
+
+  .toc-item:hover { color: var(--cream-dim); border-left-color: var(--border-light); }
+  .toc-item.active { color: var(--amber-light); border-left-color: var(--amber); }
+
+  .toc-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    flex-shrink: 0;
+  }
+
+  /* ─── MAIN CONTENT ─── */
+  .report-body {
+    padding: 40px 0 80px;
+  }
+
+  /* ─── REPORT SECTION ─── */
+  .report-section {
+    margin-bottom: 48px;
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+
+  .report-section.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .section-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--rule-strong);
+  }
+
+  .section-num-block {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--amber);
+    letter-spacing: 0.08em;
+    padding-top: 4px;
+    flex-shrink: 0;
+  }
+
+  .section-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--cream);
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+
+  .section-subtitle {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+
+  /* ─── PROSE ─── */
+  .prose {
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.75;
+  }
+
+  .prose p { margin-bottom: 14px; }
+  .prose p:last-child { margin-bottom: 0; }
+
+  .prose strong { color: var(--cream); font-weight: 600; }
+  .prose em { color: var(--cream-dim); font-style: italic; }
+
+  .prose .highlight {
+    color: var(--amber-light);
+    font-weight: 600;
+  }
+
+  .prose .callout {
+    background: var(--navy-mid);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--amber);
+    padding: 16px 18px;
+    margin: 16px 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--cream-dim);
+  }
+
+  .prose .callout.red-border { border-left-color: #e05545; }
+  .prose .callout.green-border { border-left-color: var(--green-light); }
+
+  /* ─── OFFER RECOMMENDATION ─── */
+  .offer-block {
+    background: var(--navy-mid);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  .offer-header {
+    background: rgba(212,134,10,0.08);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--amber);
+  }
+
+  .offer-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+  }
+
+  .offer-cell {
+    background: var(--navy-mid);
+    padding: 20px 22px;
+  }
+
+  .offer-cell-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .offer-cell-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 26px;
+    letter-spacing: -0.02em;
+    color: var(--cream);
+    line-height: 1.1;
+  }
+
+  .offer-cell-value.amber { color: var(--amber-light); }
+  .offer-cell-value.green { color: var(--green-light); }
+
+  .offer-cell-sub {
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+  }
+
+  /* ─── LEVERAGE LIST ─── */
+  .leverage-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 16px 0;
+  }
+
+  .leverage-item {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    background: var(--navy-mid);
+    border: 1px solid var(--border);
+    padding: 14px 16px;
+  }
+
+  .leverage-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .leverage-text {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.55;
+  }
+
+  .leverage-text strong { color: var(--cream); }
+
+  /* ─── FLOOD SECTION ─── */
+  .flood-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin: 16px 0;
+  }
+
+  .flood-cell {
+    background: var(--navy-mid);
+    padding: 18px 20px;
+  }
+
+  .flood-cell-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .flood-cell-value {
+    font-size: 15px;
+    color: var(--cream-dim);
+    font-weight: 500;
+    margin-bottom: 3px;
+  }
+
+  .flood-cell-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .flood-rating-large {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .flood-dot-large {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--amber);
+    box-shadow: 0 0 12px rgba(212,134,10,0.6);
+    flex-shrink: 0;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 8px rgba(212,134,10,0.5); }
+    50% { box-shadow: 0 0 18px rgba(212,134,10,0.8); }
+  }
+
+  .flood-rating-text {
+    font-family: 'DM Serif Display', serif;
+    font-size: 20px;
+    color: var(--amber-light);
+  }
+
+  /* ─── OUTLOOK TIMELINE ─── */
+  .timeline {
+    position: relative;
+    padding-left: 28px;
+    margin: 16px 0;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 8px;
+    bottom: 8px;
+    width: 1px;
+    background: linear-gradient(180deg, var(--amber) 0%, var(--border) 100%);
+  }
+
+  .timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+  }
+
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -24px;
+    top: 7px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--amber);
+    border: 1px solid var(--navy-deep);
+  }
+
+  .timeline-year {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .timeline-text {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.55;
+  }
+
+  .timeline-text strong { color: var(--cream-dim); font-weight: 500; }
+
+  /* ─── SMART CASE ─── */
+  .verdict-final {
+    background: linear-gradient(135deg, rgba(26,122,74,0.08) 0%, rgba(30,48,69,0.3) 100%);
+    border: 1px solid rgba(34,160,90,0.2);
+    padding: 24px;
+    margin: 16px 0;
+  }
+
+  .verdict-final-header {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--green-light);
+    margin-bottom: 10px;
+  }
+
+  .verdict-final-text {
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  .verdict-final-text strong { color: var(--cream); }
+
+  /* ─── AGENT TRACK RECORD ─── */
+  .agent-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 14px 0;
+  }
+
+  .agent-table th {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 400;
+  }
+
+  .agent-table td {
+    padding: 11px 12px;
+    border-bottom: 1px solid rgba(30,58,84,0.4);
+    color: var(--text-secondary);
+  }
+
+  .agent-table tr:hover td { background: rgba(30,48,69,0.3); }
+  .agent-table td.addr { color: var(--cream-dim); font-weight: 500; font-size: 12.5px; }
+  .agent-table td.mono { font-family: 'DM Mono', monospace; font-size: 12px; }
+  .agent-table td.neg { color: #e05545; font-family: 'DM Mono', monospace; font-size: 12px; }
+  .agent-table td.pos { color: var(--green-light); font-family: 'DM Mono', monospace; font-size: 12px; }
+
+  .agent-summary-row {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border);
+    margin-top: 14px;
+  }
+
+  .agent-summary-cell {
+    flex: 1;
+    padding: 14px 16px;
+    border-right: 1px solid var(--border);
+  }
+
+  .agent-summary-cell:last-child { border-right: none; }
+
+  .agent-sum-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 5px;
+  }
+
+  .agent-sum-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 20px;
+    color: var(--cream);
+    letter-spacing: -0.01em;
+  }
+
+  .agent-sum-value.amber { color: var(--amber-light); }
+  .agent-sum-value.green { color: var(--green-light); }
+
+  /* ─── UNCOMFORTABLE TRUTHS ─── */
+  .truth-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 14px 0;
+  }
+
+  .truth-item {
+    display: flex;
+    gap: 14px;
+    padding: 14px 16px;
+    border: 1px solid rgba(192,57,43,0.2);
+    background: rgba(192,57,43,0.04);
+  }
+
+  .truth-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: #e05545;
+    flex-shrink: 0;
+    padding-top: 1px;
+  }
+
+  .truth-text {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  .truth-text strong { color: var(--cream-dim); font-weight: 500; }
+
+  /* ─── ALTERNATIVES ─── */
+  .alt-card {
+    background: var(--navy-mid);
+    border: 1px solid var(--border);
+    padding: 16px 18px;
+    margin-bottom: 10px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: start;
+  }
+
+  .alt-addr { font-weight: 600; color: var(--cream-dim); font-size: 14px; margin-bottom: 3px; }
+  .alt-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+  .alt-price {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+    color: var(--amber-light);
+    letter-spacing: -0.01em;
+    text-align: right;
+    white-space: nowrap;
+  }
+  .alt-label { font-size: 10px; color: var(--text-dim); font-family: 'DM Mono', monospace; text-align: right; margin-top: 2px; }
+
+  /* ─── GENERATE BUTTON ─── */
+  .generate-zone {
+    background: var(--navy-mid);
+    border: 1px solid var(--border);
+    padding: 36px 28px;
+    text-align: center;
+    margin-bottom: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .generate-zone::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--amber), transparent);
+  }
+
+  .generate-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 10px;
+  }
+
+  .generate-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--cream);
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+  }
+
+  .generate-sub {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 22px;
+    line-height: 1.55;
+  }
+
+  .btn-generate {
+    background: var(--amber);
+    color: var(--navy);
+    font-family: 'Instrument Sans', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    padding: 14px 32px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: 0.01em;
+    transition: background 0.15s, transform 0.1s;
+    min-width: 220px;
+  }
+
+  .btn-generate:hover { background: var(--amber-light); transform: translateY(-1px); }
+  .btn-generate:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  /* ─── AI STREAMING OUTPUT ─── */
+  .ai-output {
+    display: none;
+    margin-top: 20px;
+    background: rgba(8,15,24,0.6);
+    border: 1px solid var(--border);
+    padding: 20px;
+    text-align: left;
+  }
+
+  .ai-output.visible { display: block; }
+
+  .ai-output-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .ai-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green-light);
+    animation: pulse-green 1.2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-green {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .ai-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--green-light);
+  }
+
+  .ai-text {
+    font-size: 14.5px;
+    color: var(--text-secondary);
+    line-height: 1.75;
+    white-space: pre-wrap;
+  }
+
+  .ai-text strong { color: var(--cream); }
+
+  .cursor {
+    display: inline-block;
+    width: 2px;
+    height: 16px;
+    background: var(--amber);
+    margin-left: 2px;
+    vertical-align: middle;
+    animation: blink 0.8s step-end infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  /* ─── FOOTER ─── */
+  .report-footer {
+    border-top: 1px solid var(--rule);
+    padding: 28px 0;
+    margin-top: 40px;
+  }
+
+  .report-footer-inner {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+
+  .footer-disclaimer {
+    font-size: 11.5px;
+    color: var(--text-dim);
+    line-height: 1.65;
+    max-width: 560px;
+  }
+
+  .footer-stamp {
+    text-align: right;
+  }
+
+  .footer-stamp-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.06em;
+  }
+
+  .footer-stamp-id {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.06em;
+    margin-top: 3px;
+  }
+
+  /* ─── LOADING STATE ─── */
+  .loading-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(8,15,24,0.85);
+    z-index: 300;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+    backdrop-filter: blur(4px);
+  }
+
+  .loading-overlay.visible { display: flex; }
+
+  .loading-spinner {
+    width: 36px;
+    height: 36px;
+    border: 2px solid var(--border);
+    border-top-color: var(--amber);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+  }
+
+  .loading-subtext {
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  /* ─── DIVIDER ─── */
+  .rule { height: 1px; background: var(--rule); margin: 28px 0; }
+
+  @media (max-width: 720px) {
+    .page-layout { grid-template-columns: 1fr; padding: 0 16px; }
+    .toc { display: none; }
+    .cover { padding: 36px 16px; }
+    .cover-address { font-size: 26px; }
+    .offer-grid { grid-template-columns: 1fr; }
+    .flood-grid { grid-template-columns: 1fr; }
+    .cover-meta-row { flex-direction: column; }
+    .cover-meta-item { border-right: none; border-bottom: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOADING OVERLAY -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Generating Buyer's Brief</div>
+  <div class="loading-subtext">Analysing 14 Riverview Tce with Claude AI…</div>
+</div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">
+    BuyerSide
+    <span class="logo-badge">Buyer's Brief</span>
+  </div>
+  <div class="topbar-right">
+    <span style="color:var(--text-dim)">14 Riverview Tce, Chelmer</span>
+    <button class="btn-pdf" onclick="window.print()">↓ Save PDF</button>
+  </div>
+</div>
+
+<!-- COVER -->
+<div class="cover">
+  <div class="cover-inner">
+    <div class="cover-tag">Buyer's Brief — Paid Report</div>
+    <div class="cover-address">14 Riverview Tce,<br>Chelmer QLD 4068</div>
+
+    <div class="cover-meta-row">
+      <div class="cover-meta-item">
+        <div class="cover-meta-label">Asking Price</div>
+        <div class="cover-meta-value">$1,750,000</div>
+      </div>
+      <div class="cover-meta-item">
+        <div class="cover-meta-label">BuyerSide Estimate</div>
+        <div class="cover-meta-value amber">$1,620K – $1,740K</div>
+      </div>
+      <div class="cover-meta-item">
+        <div class="cover-meta-label">Days on Market</div>
+        <div class="cover-meta-value amber">23 (avg: 16)</div>
+      </div>
+      <div class="cover-meta-item">
+        <div class="cover-meta-label">Report Generated</div>
+        <div class="cover-meta-value">4 Apr 2025</div>
+      </div>
+    </div>
+
+    <div class="cover-summary">
+      This property is <strong>listed above its comparable range</strong> and has sat on market longer than the suburb average. <strong>Flood risk is a material factor</strong> for this address — Q100 mapped with 2022 inundation history. The data supports a negotiating position. This brief tells you exactly how to use it.
+    </div>
+  </div>
+</div>
+
+<!-- PAGE LAYOUT -->
+<div class="page-layout">
+
+  <!-- TOC -->
+  <div class="toc">
+    <div class="toc-title">Contents</div>
+    <a class="toc-item active" onclick="scrollTo('s1')"><span class="toc-num">01</span> Offer Recommendation</a>
+    <a class="toc-item" onclick="scrollTo('s2')"><span class="toc-num">02</span> Negotiating Leverage</a>
+    <a class="toc-item" onclick="scrollTo('s3')"><span class="toc-num">03</span> Flood Risk Explained</a>
+    <a class="toc-item" onclick="scrollTo('s4')"><span class="toc-num">04</span> Suburb Outlook</a>
+    <a class="toc-item" onclick="scrollTo('s5')"><span class="toc-num">05</span> Smart Case</a>
+    <a class="toc-item" onclick="scrollTo('s6')"><span class="toc-num">06</span> Agent Track Record</a>
+    <a class="toc-item" onclick="scrollTo('s7')"><span class="toc-num">07</span> What the Agent Won't Tell You</a>
+    <a class="toc-item" onclick="scrollTo('ai')"><span class="toc-num">AI</span> Generate Analysis</a>
+  </div>
+
+  <!-- REPORT BODY -->
+  <div class="report-body">
+
+    <!-- 01. OFFER RECOMMENDATION -->
+    <div class="report-section" id="s1">
+      <div class="section-header">
+        <div class="section-num-block">01</div>
+        <div>
+          <div class="section-title">Offer Recommendation</div>
+          <div class="section-subtitle">Opening position · Target settlement · Reasoning</div>
+        </div>
+      </div>
+
+      <div class="offer-block">
+        <div class="offer-header">Recommended Offer Strategy</div>
+        <div class="offer-grid">
+          <div class="offer-cell">
+            <div class="offer-cell-label">Opening Offer</div>
+            <div class="offer-cell-value amber">$1,640,000</div>
+            <div class="offer-cell-sub">6.3% below asking</div>
+          </div>
+          <div class="offer-cell">
+            <div class="offer-cell-label">Target Settlement</div>
+            <div class="offer-cell-value">$1,680,000</div>
+            <div class="offer-cell-sub">4.0% below asking</div>
+          </div>
+          <div class="offer-cell">
+            <div class="offer-cell-label">Walk Away Above</div>
+            <div class="offer-cell-value green">$1,730,000</div>
+            <div class="offer-cell-sub">Upper comp boundary</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="prose">
+        <p>The listing price of $1,750,000 sits above the top of the verified comparable range for a 4-bed/2-bath on 580–650m² in Chelmer. The strongest comparable — 22 Dunmore St at $1,810,000 — featured a third bathroom and a more recent renovation. Adjusted for those differences, this property's ceiling is approximately <strong>$1,730,000</strong>.</p>
+
+        <div class="callout">
+          <strong>Opening position rationale:</strong> At $1,640,000, you are anchoring 6.3% below asking and signalling that you've done your homework. This is not a lowball — it's a disciplined opening supported by the comparable evidence. The suburb vendor discount average of 2.8% supports a final settlement around $1,700,000; your target of $1,680,000 is slightly more aggressive but achievable given days on market.
+        </div>
+
+        <p>The 23-day DOM is your primary piece of leverage (see Section 02). Tabling an offer now — before the property crosses 30 days — positions you as a serious buyer while the vendor is still in a relatively strong psychological position. If the property reaches 30+ days without a price reduction, revisit with a conditional offer structure.</p>
+
+        <p><strong>Settlement terms:</strong> A standard 30-day settlement is appropriate here unless you can offer 14-day (which gives you negotiating room on price). Finance condition is advisable given flood mapping and its potential impact on lender appetite — see Section 03.</p>
+      </div>
+    </div>
+
+    <!-- 02. NEGOTIATING LEVERAGE -->
+    <div class="report-section" id="s2">
+      <div class="section-header">
+        <div class="section-num-block">02</div>
+        <div>
+          <div class="section-title">Negotiating Leverage</div>
+          <div class="section-subtitle">What the data gives you to work with</div>
+        </div>
+      </div>
+
+      <ul class="leverage-list">
+        <li class="leverage-item">
+          <div class="leverage-icon">⏱</div>
+          <div class="leverage-text">
+            <strong>23 days on market vs suburb median of 16.</strong> This property is running 44% longer than average for Chelmer. While not yet at the stress threshold (typically 30–35 days), the vendor will be aware of the gap. Every week without an offer increases your negotiating position — but also increases the chance another buyer moves.
+          </div>
+        </li>
+        <li class="leverage-item">
+          <div class="leverage-icon">💧</div>
+          <div class="leverage-text">
+            <strong>Flood overlay is a hidden buyer objection.</strong> A meaningful percentage of the buyers who've inspected this property will have walked away due to Q100 mapping. The vendor and agent know this. You can reference this directly: "We've factored in the flood overlay and what it means for insurance — that's reflected in our offer."
+          </div>
+        </li>
+        <li class="leverage-item">
+          <div class="leverage-icon">📊</div>
+          <div class="leverage-text">
+            <strong>Listing is above the algorithmic estimate range.</strong> BuyerSide's estimate of $1,620K–$1,740K (midpoint $1,680K) gives you an independent basis for your offer. You don't need to cite this directly, but it informs your confidence in your position.
+          </div>
+        </li>
+        <li class="leverage-item">
+          <div class="leverage-icon">🏠</div>
+          <div class="leverage-text">
+            <strong>7 active listings in Chelmer.</strong> That's above the historical average for this suburb. Buyers have alternatives at this price point. This reduces urgency and supports a measured approach — you are not competing against a depleted market.
+          </div>
+        </li>
+        <li class="leverage-item">
+          <div class="leverage-icon">📉</div>
+          <div class="leverage-text">
+            <strong>Vendor discount pattern supports movement.</strong> Marcus Webb (selling agent) has averaged a 3.1% vendor discount on comparable Chelmer sales over the past 12 months. His vendors move — they don't hold to asking. This is a good sign.
+          </div>
+        </li>
+      </ul>
+
+      <div class="prose">
+        <div class="callout green-border">
+          <strong>What to say to the agent:</strong> "We've looked carefully at the comparables in the street and around Chelmer, and we've factored in the flood overlay. We'd like to put forward $1,640,000 as our opening position — we're ready to move quickly and this is a genuine offer." Confident, data-backed, no apology.
+        </div>
+      </div>
+    </div>
+
+    <!-- 03. FLOOD RISK -->
+    <div class="report-section" id="s3">
+      <div class="section-header">
+        <div class="section-num-block">03</div>
+        <div>
+          <div class="section-title">Flood Risk in Plain English</div>
+          <div class="section-subtitle">Not just the overlay flag — what it actually means for you</div>
+        </div>
+      </div>
+
+      <div class="flood-rating-large">
+        <div class="flood-dot-large"></div>
+        <div class="flood-rating-text">Moderate–High — Q100 Flood Mapped, 2022 Inundation Confirmed</div>
+      </div>
+
+      <div class="flood-grid">
+        <div class="flood-cell">
+          <div class="flood-cell-label">BCC Flood Category</div>
+          <div class="flood-cell-value">Q100 (1% AEP)</div>
+          <div class="flood-cell-sub">Inundation risk in a flood with 1% chance per year</div>
+        </div>
+        <div class="flood-cell">
+          <div class="flood-cell-label">2022 Event</div>
+          <div class="flood-cell-value">Confirmed Inundation</div>
+          <div class="flood-cell-sub">Riverview Tce recorded flood entry in Feb 2022</div>
+        </div>
+        <div class="flood-cell">
+          <div class="flood-cell-label">Est. Insurance Premium Impact</div>
+          <div class="flood-cell-value">+$3,500–$6,000/yr</div>
+          <div class="flood-cell-sub">vs comparable non-flood property</div>
+        </div>
+        <div class="flood-cell">
+          <div class="flood-cell-label">Lender Appetite</div>
+          <div class="flood-cell-value">Reduced (some lenders)</div>
+          <div class="flood-cell-sub">Some lenders apply LVR caps on Q100 properties</div>
+        </div>
+      </div>
+
+      <div class="prose">
+        <p>The Q100 flood overlay means Brisbane City Council has assessed this property as having inundation risk in a flood event with a 1% annual probability (a "1 in 100 year" event — though as 2022 demonstrated, these labels are increasingly misleading). The February 2022 Brisbane floods confirmed actual inundation on Riverview Tce.</p>
+
+        <div class="callout red-border">
+          <strong>Insurance reality post-2022:</strong> Several major Australian insurers have either exited flood-prone Brisbane suburbs entirely or have repriced Q100-mapped properties aggressively. Expect to pay $4,000–$7,500/year for building and contents insurance at this address, versus $1,500–$2,500 for a comparable non-flood property in nearby Taringa or Indooroopilly. This is a real ongoing cost. Get a quote before you commit.
+        </div>
+
+        <p><strong>Impact on future saleability:</strong> Post-2022 data shows that Q100-mapped properties in Chelmer and neighbouring Graceville have underperformed dry-street equivalents by approximately 4–7% on a 3-year capital growth basis. This doesn't mean the property won't grow in value — Chelmer's fundamentals are strong — but you are carrying a structural headwind that will affect your resale pool. Many buyers with finance from major lenders will be limited in how much they can borrow against a Q100 property.</p>
+
+        <p><strong>What to do:</strong> Get a building inspection that specifically assesses flood resilience. Ask the vendor for any post-2022 remediation documentation. Obtain insurance quotes from at least 3 providers before exchange. Consider whether the lower end of your offer range adequately compensates for the ongoing insurance cost.</p>
+      </div>
+    </div>
+
+    <!-- 04. SUBURB OUTLOOK -->
+    <div class="report-section" id="s4">
+      <div class="section-header">
+        <div class="section-num-block">04</div>
+        <div>
+          <div class="section-title">5–10 Year Suburb Outlook</div>
+          <div class="section-subtitle">Chelmer · Infrastructure · Olympics · Rezoning · CAGR</div>
+        </div>
+      </div>
+
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-year">2026</div>
+          <div class="timeline-text"><strong>Cross River Rail operational.</strong> Dutton Park station (3.4km from this property) opens, dramatically improving CBD access. Chelmer already has a suburban rail station — Cross River Rail adds a second axis. Historically, inner-west Brisbane suburbs within 4km of new rail infrastructure have seen 5–8% above-suburb-average growth in the 2 years post-opening.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-year">2027–28</div>
+          <div class="timeline-text"><strong>Brisbane 2032 Olympics infrastructure ramp-up.</strong> Chelmer is inside the inner-west corridor that will benefit from road and active transport upgrades ahead of the games. The suburb sits in the Graceville–Chelmer character residential overlay — not a rezoning risk — meaning density changes that affect other suburbs won't compress amenity here.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-year">2032</div>
+          <div class="timeline-text"><strong>Olympics effect.</strong> Historical data from Sydney (2000) and other Olympic cities shows inner-city suburbs experienced 15–22% above-trend growth in the 5 years leading into the games. Brisbane is at an earlier stage of that cycle. Chelmer's proximity to the Gabba (Olympic stadium, 6km) and its character overlay make it a defensible long-term hold.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-year">10yr CAGR</div>
+          <div class="timeline-text"><strong>Chelmer 10yr CAGR: 7.4% p.a.</strong> vs Brisbane-wide house median of 6.1% p.a. The suburb has consistently outperformed the broader market. The headwind is the flood overlay — Q100-mapped properties in this area have lagged non-flood equivalents. Net of that discount, a realistic 10yr CAGR for this property is <strong>5.8–6.8% p.a.</strong></div>
+        </div>
+      </div>
+
+      <div class="prose">
+        <div class="callout">
+          <strong>School catchment:</strong> Graceville State School (ICSEA 1147, top 12% nationally) is a meaningful drawcard. Catchment boundaries have remained stable for 10+ years. This is a genuine quality-of-life and resale driver — the buyer pool for this property will always include families specifically targeting this catchment.
+        </div>
+      </div>
+    </div>
+
+    <!-- 05. SMART CASE -->
+    <div class="report-section" id="s5">
+      <div class="section-header">
+        <div class="section-num-block">05</div>
+        <div>
+          <div class="section-title">The Smart Case for This Property</div>
+          <div class="section-subtitle">Why this still makes sense — and vs alternatives</div>
+        </div>
+      </div>
+
+      <div class="verdict-final">
+        <div class="verdict-final-header">BuyerSide Assessment</div>
+        <div class="verdict-final-text">
+          At $1,680,000 (target settlement), this is a <strong>defensible purchase</strong> for a buyer who prices the flood risk correctly, secures appropriate insurance before exchange, and is holding for 7+ years. The suburb's fundamentals — rail access, Olympic corridor, top-decile school catchment, character overlay protection — are genuine. The flood premium is real but it's priced into comparables. You are not being surprised by it; you are negotiating accordingly.
+        </div>
+      </div>
+
+      <div class="prose">
+        <p>The case for this property at the right price: <strong>Chelmer is one of the last affordable inner-west suburbs with character housing and a top-tier school catchment.</strong> Comparable suburbs — Indooroopilly, Taringa, Graceville — are trading at medians 10–18% higher. The flood overlay has created a price discount that is, for a long-term owner-occupier, potentially favourable if you can absorb the insurance cost and hold through cycles.</p>
+        <p>The case against: If you need to sell in under 5 years, or if your lender applies restrictive LVR conditions to Q100 properties, your exit options are constrained. The buyer pool for a flood-mapped property is structurally smaller than for a dry-street equivalent.</p>
+      </div>
+
+      <div class="rule"></div>
+
+      <div style="font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-dim); margin-bottom:12px;">Alternatives at this price point</div>
+
+      <div class="alt-card">
+        <div>
+          <div class="alt-addr">12 Cheltenham St, Graceville</div>
+          <div class="alt-desc">4 bed / 2 bath / 630m² — No flood overlay. Comparable renovation standard. Smaller block. Currently listed.</div>
+        </div>
+        <div>
+          <div class="alt-price">$1,720,000</div>
+          <div class="alt-label">Asking</div>
+        </div>
+      </div>
+
+      <div class="alt-card">
+        <div>
+          <div class="alt-addr">8 Panorama St, Taringa</div>
+          <div class="alt-desc">4 bed / 2 bath / 560m² — No flood overlay. Smaller land. Better elevation. Recently sold Feb 2025.</div>
+        </div>
+        <div>
+          <div class="alt-price">$1,695,000</div>
+          <div class="alt-label">Sold Feb '25</div>
+        </div>
+      </div>
+
+      <div class="alt-card">
+        <div>
+          <div class="alt-addr">31 Oxley Rd, Chelmer</div>
+          <div class="alt-desc">4 bed / 2 bath / 640m² — Q100 mapped but dry in 2022. Character features. 28 days on market.</div>
+        </div>
+        <div>
+          <div class="alt-price">$1,680,000</div>
+          <div class="alt-label">Asking</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 06. AGENT TRACK RECORD -->
+    <div class="report-section" id="s6">
+      <div class="section-header">
+        <div class="section-num-block">06</div>
+        <div>
+          <div class="section-title">Agent Track Record</div>
+          <div class="section-subtitle">Marcus Webb · Ray White Indooroopilly · Past 12 months</div>
+        </div>
+      </div>
+
+      <div class="agent-summary-row">
+        <div class="agent-summary-cell">
+          <div class="agent-sum-label">Avg Vendor Discount</div>
+          <div class="agent-sum-value amber">−3.1%</div>
+        </div>
+        <div class="agent-summary-cell">
+          <div class="agent-sum-label">Avg Days on Market</div>
+          <div class="agent-sum-value">19 days</div>
+        </div>
+        <div class="agent-summary-cell">
+          <div class="agent-sum-label">Sales in Chelmer (12mo)</div>
+          <div class="agent-sum-value">8 sales</div>
+        </div>
+        <div class="agent-summary-cell">
+          <div class="agent-sum-label">vs Suburb Avg Discount</div>
+          <div class="agent-sum-value green">−0.3% better</div>
+        </div>
+      </div>
+
+      <table class="agent-table" style="margin-top:16px;">
+        <thead>
+          <tr>
+            <th>Address</th>
+            <th>Bed/Bath</th>
+            <th>Listed</th>
+            <th>Sold</th>
+            <th>Discount</th>
+            <th>DOM</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="addr">9 Oxley Rd, Chelmer</td>
+            <td>4/2</td>
+            <td class="mono">$1,779,000</td>
+            <td class="mono">$1,731,000</td>
+            <td class="neg">−2.7%</td>
+            <td>18d</td>
+          </tr>
+          <tr>
+            <td class="addr">3 Sherwood Rd, Chelmer</td>
+            <td>4/2</td>
+            <td class="mono">$1,699,000</td>
+            <td class="mono">$1,625,000</td>
+            <td class="neg">−4.4%</td>
+            <td>24d</td>
+          </tr>
+          <tr>
+            <td class="addr">41 Cheltenham St, Graceville</td>
+            <td>3/2</td>
+            <td class="mono">$1,395,000</td>
+            <td class="mono">$1,370,000</td>
+            <td class="neg">−1.8%</td>
+            <td>14d</td>
+          </tr>
+          <tr>
+            <td class="addr">7 Station Ave, Chelmer</td>
+            <td>4/3</td>
+            <td class="mono">$2,100,000</td>
+            <td class="mono">$2,030,000</td>
+            <td class="neg">−3.3%</td>
+            <td>22d</td>
+          </tr>
+          <tr>
+            <td class="addr">19 Dunmore St, Chelmer</td>
+            <td>4/2</td>
+            <td class="mono">$1,650,000</td>
+            <td class="mono">$1,612,500</td>
+            <td class="neg">−2.3%</td>
+            <td>17d</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="prose" style="margin-top:14px;">
+        <p>Webb consistently achieves settlements 2–4% below listing price. His DOM average of 19 days is marginally above the suburb median, which suggests he lists optimistically and manages vendor expectations down over time. <strong>This is a positive signal for you as a buyer</strong> — his vendors are accustomed to moving off asking price. He has listed this property at a 4.2% premium to the PropTech midpoint estimate, which is consistent with his pattern.</p>
+      </div>
+    </div>
+
+    <!-- 07. UNCOMFORTABLE TRUTHS -->
+    <div class="report-section" id="s7">
+      <div class="section-header">
+        <div class="section-num-block">07</div>
+        <div>
+          <div class="section-title">What the Agent Won't Tell You</div>
+          <div class="section-subtitle">The uncomfortable truths, written from the data</div>
+        </div>
+      </div>
+
+      <ul class="truth-list">
+        <li class="truth-item">
+          <div class="truth-num">01</div>
+          <div class="truth-text">
+            <strong>This property flooded in 2022.</strong> The agent will describe the flood overlay in the most benign possible terms — "low-lying area," "overland flow path." Riverview Tce recorded confirmed inundation in February 2022. Ask directly: "Did water enter the structure in 2022?" They are legally obligated to disclose.
+          </div>
+        </li>
+        <li class="truth-item">
+          <div class="truth-num">02</div>
+          <div class="truth-text">
+            <strong>Insurance could cost more than you expect.</strong> Several major insurers — including some of the largest in Australia — have exited or drastically repriced Q100 Brisbane properties post-2022. Your bank may require proof of insurance before settlement. Get quotes before you exchange contracts, not after.
+          </div>
+        </li>
+        <li class="truth-item">
+          <div class="truth-num">03</div>
+          <div class="truth-text">
+            <strong>The listing price has no comparable support at the top end.</strong> The $1,810,000 comp the agent will cite (22 Dunmore St) had 3 bathrooms and a more recent renovation. Adjusted for configuration, the comparable ceiling for this property is approximately $1,730,000 — $20,000 below the listing price.
+          </div>
+        </li>
+        <li class="truth-item">
+          <div class="truth-num">04</div>
+          <div class="truth-text">
+            <strong>The agent works for the vendor, not you.</strong> Webb will be personable and helpful — that's his job. But his fiduciary duty is to achieve the best price for his client. Every piece of information he shares is curated with that goal in mind. This Brief exists because you deserve the unfiltered version.
+          </div>
+        </li>
+        <li class="truth-item">
+          <div class="truth-num">05</div>
+          <div class="truth-text">
+            <strong>Some lenders won't lend at full LVR on this property.</strong> Q100-mapped properties attract additional scrutiny from lenders. Some will cap LVR at 80% regardless of your credit profile, or require flood insurance as a condition of finance. Confirm with your broker before making an unconditional offer.
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- AI GENERATE SECTION -->
+    <div class="report-section" id="ai">
+      <div class="section-header">
+        <div class="section-num-block">AI</div>
+        <div>
+          <div class="section-title">Generate Custom Analysis</div>
+          <div class="section-subtitle">Ask Claude to go deeper on any aspect of this property</div>
+        </div>
+      </div>
+
+      <div class="generate-zone">
+        <div class="generate-label">Powered by Claude AI</div>
+        <div class="generate-title">Analyse this property with AI</div>
+        <div class="generate-sub">Click below to generate a live AI analysis of 14 Riverview Tce — covering the tension between Chelmer's growth fundamentals and the flood risk, and what it means for your decision.</div>
+        <button class="btn-generate" id="generateBtn" onclick="generateBrief()">Generate AI Analysis →</button>
+
+        <div class="ai-output" id="aiOutput">
+          <div class="ai-output-header">
+            <div class="ai-dot" id="aiDot"></div>
+            <div class="ai-label" id="aiLabel">Claude AI · Generating</div>
+          </div>
+          <div class="ai-text" id="aiText"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="report-footer">
+      <div class="report-footer-inner">
+        <div class="footer-disclaimer">
+          This report is market research and analysis, not a formal property valuation. It is not suitable for lending, legal, or insurance purposes. BuyerSide is not a registered property valuer. Property data sourced from Domain API, PropTechData, and publicly available records. Always obtain independent legal, financial, and building inspection advice before purchasing property.
+        </div>
+        <div class="footer-stamp">
+          <div class="footer-stamp-date">Generated: 4 Apr 2025 · 09:41 AEST</div>
+          <div class="footer-stamp-id">Report ID: BS-2025-CHE-0041</div>
+          <div class="footer-stamp-id" style="margin-top:6px; color:var(--amber); font-size:11px;">BuyerSide — Independent. No agenda.</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /report-body -->
+</div><!-- /page-layout -->
+
+<script>
+  // ─── TOC ACTIVE STATE ───
+  function scrollTo(id) {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // ─── INTERSECTION OBSERVER FOR SECTIONS ───
+  const sections = document.querySelectorAll('.report-section');
+  const tocItems = document.querySelectorAll('.toc-item');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        const id = entry.target.id;
+        tocItems.forEach(item => {
+          item.classList.remove('active');
+          if (item.getAttribute('onclick')?.includes(id)) {
+            item.classList.add('active');
+          }
+        });
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '-60px 0px -20% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+
+  // ─── CLAUDE API INTEGRATION ───
+  const PROPERTY_DATA = {
+    address: "14 Riverview Tce, Chelmer QLD 4068",
+    listingPrice: 1750000,
+    beds: 4, baths: 2, land: 607,
+    daysOnMarket: 23, suburbAvgDOM: 16,
+    estimateRange: { low: 1620000, high: 1740000, mid: 1680000 },
+    floodRisk: "Q100 mapped, confirmed 2022 inundation",
+    suburbMedian: 1610000,
+    suburbGrowth12m: 9.2,
+    suburbCAGR10yr: 7.4,
+    vendorDiscount: -2.8,
+    agent: "Marcus Webb, Ray White Indooroopilly",
+    agentAvgDiscount: -3.1,
+    schoolICSEA: 1147,
+    keyInfrastructure: ["Cross River Rail (Dutton Park 3.4km, 2026)", "Brisbane 2032 Olympics corridor", "Graceville character overlay protection"]
+  };
+
+  const SYSTEM_PROMPT = `You are BuyerSide's AI analyst — an independent, data-driven property research tool for Australian home buyers. You write like a sharp buyer's agent who has no agenda except getting the buyer the best outcome.
+
+Your tone is:
+- Direct and confident. No hedging, no waffle.
+- Data-anchored. Every claim is grounded in the numbers provided.
+- Plain English. Translate jargon into consequences.
+- Buyer-first. You are not trying to sell the property. You are trying to help the buyer decide clearly.
+
+You are NOT:
+- A licensed valuer or financial advisor (note this briefly once)
+- Promotional or enthusiastic
+- Vague or equivocal
+
+Structure your analysis clearly with short paragraphs. Use specific numbers. Call out risks and opportunities with equal weight.`;
+
+  const USER_PROMPT = `Generate a focused buyer's analysis for the following Brisbane property. Cover:
+
+1. The core tension in this decision (flood risk vs suburb fundamentals)
+2. What the data says about whether the asking price is justified
+3. The single most important thing this buyer needs to know before making an offer
+4. A one-sentence verdict
+
+Property data:
+${JSON.stringify(PROPERTY_DATA, null, 2)}
+
+Write 280–350 words. No bullet points. Prose only.`;
+
+  async function generateBrief() {
+  const btn = document.getElementById('generateBtn');
+  const output = document.getElementById('aiOutput');
+  const aiText = document.getElementById('aiText');
+  const aiLabel = document.getElementById('aiLabel');
+  const aiDot = document.getElementById('aiDot');
+
+  btn.disabled = true;
+  btn.textContent = 'Generating…';
+  output.classList.add('visible');
+  aiText.innerHTML = '<span class="cursor"></span>';
+
+  try {
+    const response = await fetch('/api/generate-brief', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        propertyData: PROPERTY_DATA,
+        reportType: 'analysis'
+      })
+    });
+
+    const data = await response.json();
+
+    aiDot.style.animation = 'none';
+    aiDot.style.background = 'var(--amber)';
+    aiLabel.textContent = 'Claude AI · Complete';
+    aiLabel.style.color = 'var(--amber)';
+
+    const formatted = data.text
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n\n/g, '</p><p>');
+    aiText.innerHTML = '<p>' + formatted + '</p>';
+
+    btn.textContent = 'Regenerate Analysis';
+    btn.disabled = false;
+
+  } catch (err) {
+    aiText.innerHTML = `<span style="color:#e05545">Error: ${err.message}</span>`;
+    btn.textContent = 'Try Again';
+    btn.disabled = false;
+  }
+}
+</script>
+
+</body>
+</html>
