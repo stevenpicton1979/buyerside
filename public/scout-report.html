@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BuyerSide — Scout Report: 14 Riverview Tce, Chelmer</title>
+<title>BuyerSide — Scout Report</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
@@ -846,7 +846,7 @@
     <span class="logo-badge">Scout Report</span>
   </div>
   <div class="topbar-right">
-    <span>14 Riverview Tce, Chelmer</span>
+    <span id="topbar-address">Loading…</span>
     <button class="btn-upgrade" onclick="document.getElementById('upgrade-section').scrollIntoView({behavior:'smooth'})">Get the Buyer's Brief — $149</button>
   </div>
 </div>
@@ -855,20 +855,20 @@
 <div class="hero-strip">
   <div class="hero-inner">
     <div class="report-type-tag">Scout Report — Free</div>
-    <div class="property-address">14 Riverview Tce,<br>Chelmer QLD 4068</div>
+    <div class="property-address" id="hero-address">Loading…</div>
     <div class="property-meta">
       <div>
-        <div class="price-label">Listing price</div>
-        <div class="listing-price">$1,750,000</div>
+        <div class="price-label" id="price-label">Listing price</div>
+        <div class="listing-price" id="hero-price">—</div>
       </div>
       <div class="meta-divider"></div>
-      <div class="meta-pill">🛏 <span>4</span> bed</div>
-      <div class="meta-pill">🚿 <span>2</span> bath</div>
-      <div class="meta-pill">🚗 <span>2</span> car</div>
-      <div class="meta-pill">📐 <span>607 m²</span></div>
+      <div class="meta-pill" id="meta-beds">🛏 <span>—</span></div>
+      <div class="meta-pill" id="meta-baths">🚿 <span>—</span></div>
+      <div class="meta-pill" id="meta-cars">🚗 <span>—</span></div>
+      <div class="meta-pill" id="meta-land">📐 <span>—</span></div>
       <div class="meta-divider"></div>
-      <div class="meta-pill">Listed <span>23 days ago</span></div>
-      <div class="meta-pill">Agent: <span>Ray White Indooroopilly</span></div>
+      <div class="meta-pill" id="meta-dom">Listed <span>—</span></div>
+      <div class="meta-pill" id="meta-agent">Agent: <span>—</span></div>
     </div>
   </div>
 </div>
@@ -900,23 +900,23 @@
       <div class="data-grid">
         <div class="data-cell">
           <div class="data-cell-label">Listing Price</div>
-          <div class="data-cell-value large">$1,750,000</div>
-          <div class="data-cell-sub">Listed 23 Mar 2025</div>
+          <div class="data-cell-value large" id="cell-price">—</div>
+          <div class="data-cell-sub" id="cell-price-sub">—</div>
         </div>
         <div class="data-cell">
           <div class="data-cell-label">Days on Market</div>
-          <div class="data-cell-value large">23</div>
-          <div class="data-cell-badge badge-warn">Above suburb avg (16d)</div>
+          <div class="data-cell-value large" id="cell-dom">—</div>
+          <div class="data-cell-badge badge-warn" id="cell-dom-badge" style="display:none;">—</div>
         </div>
         <div class="data-cell">
           <div class="data-cell-label">Land Size</div>
-          <div class="data-cell-value">607 m²</div>
-          <div class="data-cell-sub">$2,883/m² land rate</div>
+          <div class="data-cell-value" id="cell-land">—</div>
+          <div class="data-cell-sub" id="cell-land-sub">—</div>
         </div>
         <div class="data-cell">
           <div class="data-cell-label">Property Type</div>
-          <div class="data-cell-value" style="font-size:17px;">House</div>
-          <div class="data-cell-sub">Post-war renovation</div>
+          <div class="data-cell-value" style="font-size:17px;" id="cell-type">—</div>
+          <div class="data-cell-sub" id="cell-type-sub">—</div>
         </div>
         <div class="data-cell">
           <div class="data-cell-label">Year Built (est.)</div>
@@ -938,6 +938,7 @@
         <span class="section-title">Comparable Sales — Chelmer (12 months)</span>
       </div>
 
+      <div id="comparables-content">
       <div class="content-card" style="padding: 0; overflow: hidden;">
         <table class="comp-table">
           <thead>
@@ -1006,13 +1007,14 @@
       <div class="inline-note">
         Comparable range for a 4-bed/2-bath on 580–650m² in Chelmer: <strong style="color:var(--cream-dim)">$1,625,000 – $1,810,000</strong>. Listing price of $1,750,000 sits in the upper third. The $1,810,000 comp at 22 Dunmore St had 3 bathrooms and a larger renovation budget.
       </div>
+      </div><!-- /comparables-content -->
     </div>
 
     <!-- SUBURB STATS -->
     <div class="section">
       <div class="section-header">
         <span class="section-num">03</span>
-        <span class="section-title">Chelmer — Suburb Snapshot</span>
+        <span class="section-title" id="suburb-heading">Suburb Snapshot</span>
       </div>
 
       <div class="content-card">
@@ -1046,7 +1048,7 @@
         </div>
         <div class="stat-row">
           <span class="stat-label">Primary school catchment</span>
-          <span class="stat-value">Graceville State (ICSEA 1147)</span>
+          <span class="stat-value" id="school-catchment">School catchment data loading</span>
         </div>
       </div>
 
@@ -1083,12 +1085,13 @@
 
       <div class="content-card">
         <div class="flood-indicator">
-          <div class="flood-dot amber"></div>
-          <div class="flood-rating">Flood Risk: Moderate–High (Q100 mapped)</div>
+          <div class="flood-dot amber" id="flood-dot"></div>
+          <div class="flood-rating" id="flood-rating">Flood overlay data loading…</div>
         </div>
-        <div class="flood-desc">
-          This property sits within BCC's Q100 flood overlay. The street (Riverview Tce) recorded inundation during the February 2022 event. Flood data is available in this Scout Report — what it means for insurance premiums, lender appetite, and resale value is detailed in the Buyer's Brief.
+        <div class="flood-desc" id="flood-desc">
+          Enter your email above to unlock flood overlay data for this property.
         </div>
+        <div id="flood-source" style="font-size:11px; color:var(--text-dim); margin-top:8px;"></div>
       </div>
     </div>
 
@@ -1179,7 +1182,7 @@
           <div class="upgrade-price">$149</div>
           <div class="upgrade-price-sub">One-time · This property · No subscription</div>
         </div>
-        <button class="btn-brief-large" id="checkout-btn" onclick="startCheckout()">Get the Buyer's Brief →
+        <button class="btn-brief-large" id="checkout-btn" onclick="startCheckout()">Get the Buyer's Brief →</button>
       </div>
 
       <div class="upgrade-disclaimer">Delivered on-screen instantly. Emailed as PDF. Stored 30 days. Independent analysis — BuyerSide has no relationship with the selling agent.</div>
@@ -1191,38 +1194,24 @@
   <div class="sidebar">
 
     <!-- ESTIMATE CARD -->
-    <div class="sidebar-card">
-      <div class="sidebar-card-title">PropTech Estimate</div>
-      <div class="estimate-range">
-        <div class="estimate-low">$1.62M</div>
-        <div class="estimate-dash">–</div>
-        <div class="estimate-high">$1.74M</div>
+    <div class="sidebar-card" id="estimate-card">
+      <div class="sidebar-card-title">Price Estimate</div>
+      <div style="padding: 12px 0; font-size:13.5px; color:var(--text-secondary); line-height:1.55;">
+        Independent price estimate included in Buyer's Brief
       </div>
-      <div class="estimate-label">Range (70% confidence)</div>
-      <div class="estimate-mid">$1,680,000</div>
-      <div class="estimate-label">Midpoint estimate</div>
-
-      <div class="confidence-bar">
-        <div class="confidence-label">Data confidence <span>Medium–High</span></div>
-        <div class="meter-track">
-          <div class="meter-fill amber" style="width: 68%"></div>
-        </div>
-      </div>
-
-      <div class="inline-note" style="margin-top:12px;">
-        Listing at $1,750,000 is <strong style="color:var(--amber-light)">$70,000 above</strong> the upper estimate. Flood overlay is a likely factor depressing the algorithmic estimate.
+      <div class="inline-note" style="margin-top:8px; font-size:12px;">
+        Domain Price Estimation unlocked in full analysis.
       </div>
     </div>
 
     <!-- DAYS ON MARKET -->
     <div class="sidebar-card">
       <div class="sidebar-card-title">Days on Market Signal</div>
-      <div class="dom-display">23</div>
+      <div class="dom-display" id="dom-days">—</div>
       <div class="dom-label">days listed</div>
 
-      <div class="dom-context">
-        Chelmer median is <strong>16 days</strong>. At 23 days, this property is running <strong>44% longer</strong> than average. This is an early-stage signal of vendor flexibility — it typically strengthens at 30+ days. <br><br>
-        <strong>What to watch:</strong> if it passes 30 days without a price drop, a conditional offer with extended settlement becomes viable.
+      <div class="dom-context" id="dom-context">
+        Enter your email to unlock days-on-market analysis for this property.
       </div>
     </div>
 
@@ -1230,10 +1219,10 @@
     <div class="sidebar-card">
       <div class="sidebar-card-title">Selling Agent</div>
       <div class="agent-info">
-        <div class="agent-avatar">MW</div>
+        <div class="agent-avatar" id="agent-avatar">—</div>
         <div>
-          <div class="agent-name">Marcus Webb</div>
-          <div class="agent-agency">Ray White Indooroopilly</div>
+          <div class="agent-name" id="agent-name">—</div>
+          <div class="agent-agency" id="agent-agency">—</div>
         </div>
       </div>
       <div class="stat-row" style="border-bottom: 1px solid rgba(30,58,84,0.5); padding: 8px 0;">
@@ -1255,7 +1244,7 @@
 
       <div class="stat-row">
         <span class="stat-label" style="font-size:12.5px;">Flood risk</span>
-        <span class="data-cell-badge badge-warn">Moderate–High</span>
+        <span class="data-cell-badge badge-warn" id="risk-flood">Loading…</span>
       </div>
       <div class="stat-row">
         <span class="stat-label" style="font-size:12.5px;">Bushfire risk</span>
@@ -1267,11 +1256,11 @@
       </div>
       <div class="stat-row">
         <span class="stat-label" style="font-size:12.5px;">Zoning</span>
-        <span class="data-cell-badge badge-ok">LDR Character</span>
+        <span class="data-cell-badge badge-ok" id="risk-zoning">—</span>
       </div>
       <div class="stat-row" style="border-bottom:none;">
         <span class="stat-label" style="font-size:12.5px;">Price vs estimate</span>
-        <span class="data-cell-badge badge-alert">Above range</span>
+        <span class="data-cell-badge badge-warn" id="risk-price">—</span>
       </div>
 
       <div class="inline-note" style="margin-top:12px; font-size:12px;">
@@ -1300,10 +1289,40 @@
 </div>
 
 <script>
-  // Hide blurred sections and upgrade buttons until email submitted
+  // ─── URL PARAMS ───
+  const params = new URLSearchParams(window.location.search);
+  const currentAddress = decodeURIComponent(params.get('address') || '');
+  const currentLat = params.get('lat') ? parseFloat(params.get('lat')) : null;
+  const currentLng = params.get('lng') ? parseFloat(params.get('lng')) : null;
+
+  // Update address in header immediately from URL params
+  if (currentAddress) {
+    document.title = 'BuyerSide — Scout Report: ' + currentAddress;
+    const parts = currentAddress.split(', ');
+    document.getElementById('topbar-address').textContent = parts[0] || currentAddress;
+    document.getElementById('hero-address').innerHTML = parts.length > 1
+      ? parts[0] + ',<br>' + parts.slice(1).join(', ')
+      : currentAddress;
+  }
+
+  // ─── HIDE GATED CONTENT ───
   document.querySelectorAll('.blurred-section').forEach(el => el.style.display = 'none');
   document.querySelectorAll('.btn-brief-large, .btn-brief').forEach(btn => btn.style.display = 'none');
 
+  // Check sessionStorage for existing data (page refresh case)
+  try {
+    const stored = sessionStorage.getItem('reportData');
+    if (stored) {
+      const reportData = JSON.parse(stored);
+      if (reportData.property?.address === currentAddress) {
+        renderReportData(reportData);
+        revealContent();
+        document.getElementById('email-gate').style.display = 'none';
+      }
+    }
+  } catch (e) {}
+
+  // ─── EMAIL SUBMIT ───
   async function submitEmail() {
     const email = document.getElementById('email-input').value.trim();
     const btn = document.getElementById('email-btn');
@@ -1325,24 +1344,21 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email,
-          propertyId: 'prop-chelmer-001',
-          address: '14 Riverview Tce, Chelmer QLD 4068'
+          address: currentAddress || '14 Riverview Tce, Chelmer QLD 4068',
+          lat: currentLat,
+          lng: currentLng
         })
       });
 
       const data = await res.json();
 
-      if (data.success) {
-        // Store email for checkout
+      if (data.property) {
         window.capturedEmail = email;
-        // Hide the gate
+        sessionStorage.setItem('reportData', JSON.stringify(data));
+        renderReportData(data);
+        revealContent();
         document.getElementById('email-gate').style.display = 'none';
-        // Show blurred sections
-        document.querySelectorAll('.blurred-section').forEach(el => el.style.display = 'block');
-        // Show upgrade buttons
-        document.querySelectorAll('.btn-brief-large, .btn-brief').forEach(btn => btn.style.display = 'block');
-        // Scroll to first revealed section
-        document.querySelector('.blurred-section').scrollIntoView({ behavior: 'smooth' });
+        document.querySelector('.blurred-section')?.scrollIntoView({ behavior: 'smooth' });
       } else {
         error.textContent = data.error || 'Something went wrong. Please try again.';
         error.style.display = 'block';
@@ -1358,6 +1374,180 @@
     }
   }
 
+  function revealContent() {
+    document.querySelectorAll('.blurred-section').forEach(el => el.style.display = 'block');
+    document.querySelectorAll('.btn-brief-large, .btn-brief').forEach(btn => btn.style.display = 'block');
+  }
+
+  // ─── RENDER FROM REAL DATA ───
+  function renderReportData(d) {
+    const p = d.property || {};
+    const l = d.listing || {};
+    const f = d.flood || {};
+    const z = d.zoning || {};
+    const c = d.character || {};
+
+    // Address (may differ slightly from URL param after API normalisation)
+    const addr = p.address || currentAddress;
+    if (addr) {
+      const parts = addr.split(', ');
+      document.getElementById('topbar-address').textContent = parts[0] || addr;
+      document.getElementById('hero-address').innerHTML = parts.length > 1
+        ? parts[0] + ',<br>' + parts.slice(1).join(', ')
+        : addr;
+      document.title = 'BuyerSide — Scout Report: ' + addr;
+    }
+
+    // Listing price
+    const price = l.listingPrice;
+    document.getElementById('hero-price').textContent = (price && price !== 'Contact agent') ? price : 'Contact agent';
+    document.getElementById('price-label').textContent = l.isOnMarket ? 'Listing price' : 'Not currently listed';
+    document.getElementById('cell-price').textContent = (price && price !== 'Contact agent') ? price : '—';
+
+    // Meta pills
+    document.getElementById('meta-beds').innerHTML = p.bedrooms ? `🛏 <span>${p.bedrooms}</span> bed` : '🛏 <span>—</span>';
+    document.getElementById('meta-baths').innerHTML = p.bathrooms ? `🚿 <span>${p.bathrooms}</span> bath` : '🚿 <span>—</span>';
+    document.getElementById('meta-cars').innerHTML = p.carSpaces ? `🚗 <span>${p.carSpaces}</span> car` : '🚗 <span>—</span>';
+    document.getElementById('meta-land').innerHTML = p.landArea ? `📐 <span>${p.landArea} m²</span>` : '📐 <span>—</span>';
+    document.getElementById('meta-dom').innerHTML = l.daysOnMarket != null
+      ? `Listed <span>${l.daysOnMarket} days ago</span>`
+      : 'Listed <span>—</span>';
+    document.getElementById('meta-agent').innerHTML = l.agencyName
+      ? `Agent: <span>${l.agencyName}</span>`
+      : 'Agent: <span>—</span>';
+
+    // Data grid cells
+    document.getElementById('cell-dom').textContent = l.daysOnMarket != null ? l.daysOnMarket : '—';
+    document.getElementById('cell-land').textContent = p.landArea ? p.landArea + ' m²' : '—';
+    document.getElementById('cell-type').textContent = p.propertyType || '—';
+
+    // Days on market sidebar
+    document.getElementById('dom-days').textContent = l.daysOnMarket != null ? l.daysOnMarket : '—';
+    if (l.daysOnMarket != null) {
+      document.getElementById('dom-context').innerHTML =
+        `This property has been listed for <strong>${l.daysOnMarket} days</strong>. ` +
+        (l.daysOnMarket > 30
+          ? 'At 30+ days on market, vendor flexibility is a reasonable expectation.'
+          : 'Vendors typically become more flexible after 30 days on market.');
+    }
+
+    // Agent sidebar
+    if (l.agentName) {
+      document.getElementById('agent-name').textContent = l.agentName;
+      const initials = l.agentName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+      document.getElementById('agent-avatar').textContent = initials;
+    }
+    if (l.agencyName) document.getElementById('agent-agency').textContent = l.agencyName;
+
+    // Flood
+    renderFlood(f);
+
+    // Zoning
+    renderZoning(z, c);
+
+    // Schools
+    renderSchools(d.schools || []);
+
+    // Comparables
+    renderComparables(d.comparables || []);
+
+    // Price estimate card
+    renderEstimate(d.priceEstimate);
+
+    // Suburb heading
+    const suburbMatch = addr.match(/,\s*([A-Za-z ]+?)\s+(?:QLD|NSW|VIC|WA|SA|TAS|ACT|NT)/);
+    if (suburbMatch) {
+      document.getElementById('suburb-heading').textContent = suburbMatch[1].trim() + ' — Suburb Snapshot';
+    }
+  }
+
+  function renderFlood(f) {
+    const dot = document.getElementById('flood-dot');
+    const rating = document.getElementById('flood-rating');
+    const desc = document.getElementById('flood-desc');
+    const source = document.getElementById('flood-source');
+
+    if (!f.hasFloodOverlay) {
+      dot.className = 'flood-dot green';
+      rating.textContent = '✓ No flood overlay identified';
+      desc.textContent = 'No flood overlay has been identified for this property under Brisbane City Plan 2014. This does not guarantee the property has never experienced flooding — always verify with council.';
+    } else if (f.riskLevel === 'high') {
+      dot.className = 'flood-dot red';
+      rating.textContent = 'Flood Risk: High — within flood overlay';
+      desc.textContent = 'This property is within a high-risk flood overlay under Brisbane City Plan 2014. This may significantly affect insurance premiums, lender appetite, and resale value.';
+    } else if (f.riskLevel === 'medium') {
+      dot.className = 'flood-dot amber';
+      rating.textContent = 'Flood Risk: Moderate — flood overlay present';
+      desc.textContent = 'This property has a moderate flood overlay under Brisbane City Plan 2014. Impact on insurance and lending should be investigated before purchase.';
+    } else if (f.riskLevel === 'low') {
+      dot.className = 'flood-dot amber';
+      rating.textContent = 'Flood Risk: Low — minor overlay';
+      desc.textContent = 'This property has a minor flood overlay under Brisbane City Plan 2014. Risk is low but worth noting in due diligence.';
+    }
+
+    // Update risk summary badge
+    const riskFlood = document.getElementById('risk-flood');
+    if (riskFlood) {
+      if (!f.hasFloodOverlay) {
+        riskFlood.textContent = 'None';
+        riskFlood.className = 'data-cell-badge badge-ok';
+      } else if (f.riskLevel === 'high') {
+        riskFlood.textContent = 'High';
+        riskFlood.className = 'data-cell-badge badge-alert';
+      } else if (f.riskLevel === 'medium') {
+        riskFlood.textContent = 'Moderate';
+        riskFlood.className = 'data-cell-badge badge-warn';
+      } else {
+        riskFlood.textContent = 'Low';
+        riskFlood.className = 'data-cell-badge badge-warn';
+      }
+    }
+
+    if (source) source.textContent = 'Source: Brisbane City Plan 2014';
+  }
+
+  function renderZoning(z, c) {
+    const badge = document.getElementById('risk-zoning');
+    if (!badge) return;
+    if (z && z.zoneName) {
+      badge.textContent = c.hasCharacterOverlay ? z.zoneName + ' + Character' : z.zoneName;
+      badge.className = c.hasCharacterOverlay ? 'data-cell-badge badge-warn' : 'data-cell-badge badge-ok';
+    } else if (z && z.zoneCode) {
+      badge.textContent = z.zoneCode;
+      badge.className = 'data-cell-badge badge-ok';
+    }
+  }
+
+  function renderSchools(schools) {
+    const el = document.getElementById('school-catchment');
+    if (!el) return;
+    if (!schools.length) {
+      el.textContent = 'School catchment data loading';
+    } else {
+      el.textContent = schools[0].name || schools[0];
+    }
+  }
+
+  function renderComparables(comparables) {
+    const el = document.getElementById('comparables-content');
+    if (!el) return;
+    if (!comparables.length) {
+      el.innerHTML = `
+        <div class="content-card" style="text-align:center; padding: 24px;">
+          <div style="font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-dim); margin-bottom:10px;">Comparable Sales</div>
+          <div style="font-size:14px; color:var(--text-secondary);">Full comparable sales analysis in Buyer's Brief</div>
+        </div>`;
+    }
+    // Future: render table from comparables array when PropTechData wired up
+  }
+
+  function renderEstimate(estimate) {
+    const card = document.getElementById('estimate-card');
+    if (!card || !estimate) return;
+    // Future: render estimate card from Domain Price Estimation data
+  }
+
+  // ─── CHECKOUT ───
   async function startCheckout() {
     const btn = document.getElementById('checkout-btn');
     btn.textContent = 'Loading…';
@@ -1369,8 +1559,8 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: window.capturedEmail || '',
-          propertyId: 'prop-chelmer-001',
-          address: '14 Riverview Tce, Chelmer QLD 4068'
+          propertyId: encodeURIComponent(currentAddress || 'unknown'),
+          address: currentAddress || 'Unknown property'
         })
       });
 

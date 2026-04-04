@@ -954,7 +954,7 @@
 
   async function fetchSuggestions(query) {
     try {
-      const res = await fetch(`/api/property-lookup?action=suggest&q=${encodeURIComponent(query)}`);
+      const res = await fetch(`/api/property-lookup?terms=${encodeURIComponent(query)}`);
       const suggestions = await res.json();
       showDropdown(suggestions);
     } catch {
@@ -994,8 +994,10 @@
     const input = document.getElementById('addressInput').value.trim();
     if (!input) return;
 
-    const propertyId = selectedProperty?.id || 'prop-chelmer-001';
-    window.location.href = `/scout-report.html?property=${encodeURIComponent(propertyId)}&address=${encodeURIComponent(input)}`;
+    const address = selectedProperty?.address || input;
+    const lat = selectedProperty?.lat || '';
+    const lng = selectedProperty?.lng || '';
+    window.location.href = `/scout-report.html?address=${encodeURIComponent(address)}&lat=${lat}&lng=${lng}`;
   }
 
   // Close dropdown on outside click
