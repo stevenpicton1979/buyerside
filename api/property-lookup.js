@@ -7,7 +7,7 @@ module.exports = async (req, res) => {
     const encoded = encodeURIComponent(terms + ' Brisbane QLD Australia')
     const response = await fetch(
       `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=5&countrycodes=au&addressdetails=1`,
-      { headers: { 'User-Agent': 'BuyerSide/1.0 (buyerside.com.au)' } }
+      { headers: { 'User-Agent': 'ClearOffer/1.0 (clearoffer.com.au)' } }
     )
     const results = await response.json()
 

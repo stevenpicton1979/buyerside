@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BuyerSide — Buyer's Brief: 14 Riverview Tce, Chelmer</title>
+<title>ClearOffer — Buyer's Brief: 14 Riverview Tce, Chelmer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
@@ -922,6 +922,17 @@
     .cover-meta-row { flex-direction: column; }
     .cover-meta-item { border-right: none; border-bottom: 1px solid var(--border); }
   }
+
+  .brief-disclaimer {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    padding: 12px 18px;
+    font-size: 0.8rem;
+    color: #9ca3af;
+    margin: 12px 32px;
+    line-height: 1.5;
+  }
 </style>
 </head>
 <body>
@@ -936,13 +947,18 @@
 <!-- TOP BAR -->
 <div class="topbar">
   <div class="logo">
-    BuyerSide
+    ClearOffer
     <span class="logo-badge">Buyer's Brief</span>
   </div>
   <div class="topbar-right">
     <span style="color:var(--text-dim)">14 Riverview Tce, Chelmer</span>
     <button class="btn-pdf" onclick="window.print()">↓ Save PDF</button>
   </div>
+</div>
+
+<!-- DISCLAIMER -->
+<div class="brief-disclaimer">
+  This report is market research and analysis only. It is not a formal property valuation and is not suitable for lending or legal purposes. Always obtain independent legal and financial advice before purchasing property.
 </div>
 
 <!-- COVER -->
@@ -957,7 +973,7 @@
         <div class="cover-meta-value">$1,750,000</div>
       </div>
       <div class="cover-meta-item">
-        <div class="cover-meta-label">BuyerSide Estimate</div>
+        <div class="cover-meta-label">ClearOffer Estimate</div>
         <div class="cover-meta-value amber">$1,620K – $1,740K</div>
       </div>
       <div class="cover-meta-item">
@@ -1065,7 +1081,7 @@
         <li class="leverage-item">
           <div class="leverage-icon">📊</div>
           <div class="leverage-text">
-            <strong>Listing is above the algorithmic estimate range.</strong> BuyerSide's estimate of $1,620K–$1,740K (midpoint $1,680K) gives you an independent basis for your offer. You don't need to cite this directly, but it informs your confidence in your position.
+            <strong>Listing is above the algorithmic estimate range.</strong> ClearOffer's estimate of $1,620K–$1,740K (midpoint $1,680K) gives you an independent basis for your offer. You don't need to cite this directly, but it informs your confidence in your position.
           </div>
         </li>
         <li class="leverage-item">
@@ -1187,7 +1203,7 @@
       </div>
 
       <div class="verdict-final">
-        <div class="verdict-final-header">BuyerSide Assessment</div>
+        <div class="verdict-final-header">ClearOffer Assessment</div>
         <div class="verdict-final-text">
           At $1,680,000 (target settlement), this is a <strong>defensible purchase</strong> for a buyer who prices the flood risk correctly, secures appropriate insurance before exchange, and is holding for 7+ years. The suburb's fundamentals — rail access, Olympic corridor, top-decile school catchment, character overlay protection — are genuine. The flood premium is real but it's priced into comparables. You are not being surprised by it; you are negotiating accordingly.
         </div>
@@ -1399,12 +1415,12 @@
     <div class="report-footer">
       <div class="report-footer-inner">
         <div class="footer-disclaimer">
-          This report is market research and analysis, not a formal property valuation. It is not suitable for lending, legal, or insurance purposes. BuyerSide is not a registered property valuer. Property data sourced from Domain API, PropTechData, and publicly available records. Always obtain independent legal, financial, and building inspection advice before purchasing property.
+          This report is market research and analysis, not a formal property valuation. It is not suitable for lending, legal, or insurance purposes. ClearOffer is not a registered property valuer. Property data sourced from Domain API, ZoneIQ, and publicly available records. Always obtain independent legal, financial, and building inspection advice before purchasing property.
         </div>
         <div class="footer-stamp">
           <div class="footer-stamp-date">Generated: 4 Apr 2025 · 09:41 AEST</div>
           <div class="footer-stamp-id">Report ID: BS-2025-CHE-0041</div>
-          <div class="footer-stamp-id" style="margin-top:6px; color:var(--amber); font-size:11px;">BuyerSide — Independent. No agenda.</div>
+          <div class="footer-stamp-id" style="margin-top:6px; color:var(--amber); font-size:11px;">ClearOffer — Independent. No agenda.</div>
         </div>
       </div>
     </div>
@@ -1458,7 +1474,7 @@
     keyInfrastructure: ["Cross River Rail (Dutton Park 3.4km, 2026)", "Brisbane 2032 Olympics corridor", "Graceville character overlay protection"]
   };
 
-  const SYSTEM_PROMPT = `You are BuyerSide's AI analyst — an independent, data-driven property research tool for Australian home buyers. You write like a sharp buyer's agent who has no agenda except getting the buyer the best outcome.
+  const SYSTEM_PROMPT = `You are ClearOffer's AI analyst — an independent, data-driven property research tool for Australian home buyers. You write like a sharp independent analyst who has no agenda except getting the buyer the best outcome.
 
 Your tone is:
 - Direct and confident. No hedging, no waffle.

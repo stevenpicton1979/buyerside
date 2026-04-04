@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     'customer_email': email,
     'line_items[0][price_data][currency]': 'aud',
     'line_items[0][price_data][unit_amount]': '14900',
-    'line_items[0][price_data][product_data][name]': "BuyerSide Buyer's Brief",
+    'line_items[0][price_data][product_data][name]': "ClearOffer Buyer's Brief",
     'line_items[0][price_data][product_data][description]': `Independent property analysis: ${address}`,
     'line_items[0][quantity]': '1',
     'success_url': `${process.env.BASE_URL}/buyers-brief.html?session_id={CHECKOUT_SESSION_ID}&property=${encodeURIComponent(propertyId)}`,

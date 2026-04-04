@@ -131,7 +131,7 @@ async function sendConfirmationEmail({ email, address, accessToken, propertyId }
     <body style="background:#0d1b2a; margin:0; padding:0; font-family: Georgia, serif;">
       <div style="max-width:560px; margin:0 auto; padding:40px 32px;">
         <div style="color:#d4860a; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; margin-bottom:20px; font-family: monospace;">
-          BuyerSide — Buyer's Brief
+          ClearOffer — Buyer's Brief
         </div>
         <div style="color:#f5f0e8; font-size:24px; letter-spacing:-0.02em; margin-bottom:12px;">
           Your report is ready.
@@ -148,7 +148,7 @@ async function sendConfirmationEmail({ email, address, accessToken, propertyId }
         </a>
         <div style="color:#4a6278; font-size:11px; margin-top:28px; line-height:1.6;">
           This link is valid for 30 days. This report is for your use only.<br>
-          BuyerSide is independent — we have no relationship with the selling agent.
+          ClearOffer is independent — we have no relationship with the selling agent.
         </div>
         <div style="border-top:1px solid rgba(213,190,150,0.12); margin-top:32px; padding-top:20px;">
           <div style="color:#4a6278; font-size:11px; line-height:1.65;">
@@ -168,9 +168,9 @@ async function sendConfirmationEmail({ email, address, accessToken, propertyId }
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'BuyerSide <reports@buyerside.com.au>',
+      from: 'ClearOffer <hello@clearoffer.com.au>',
       to: [email],
-      subject: `Your Buyer's Brief — ${address}`,
+      subject: `Your ClearOffer Buyer's Brief — ${address}`,
       html,
     }),
   });

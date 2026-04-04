@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BuyerSide — Scout Report</title>
+<title>ClearOffer — Scout Report</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
@@ -828,6 +828,41 @@
   .sidebar > *:nth-child(3) { animation-delay: 0.22s; }
   .sidebar > *:nth-child(4) { animation-delay: 0.29s; }
 
+  .placeholder-text {
+    color: #6b7280;
+    font-style: italic;
+    font-size: 0.875em;
+  }
+
+  .data-notice {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    padding: 10px 16px;
+    font-size: 0.8rem;
+    color: #9ca3af;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin: 0 32px 0;
+  }
+
+  .data-notice a {
+    color: #f59e0b;
+    text-decoration: none;
+  }
+
+  .verdict-source {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-top: 8px;
+    font-style: italic;
+    max-width: 980px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0 32px;
+  }
+
   @media (max-width: 720px) {
     .main { grid-template-columns: 1fr; }
     .property-address { font-size: 24px; }
@@ -842,7 +877,7 @@
 <!-- TOP BAR -->
 <div class="topbar">
   <div class="logo">
-    BuyerSide
+    ClearOffer
     <span class="logo-badge">Scout Report</span>
   </div>
   <div class="topbar-right">
@@ -873,15 +908,22 @@
   </div>
 </div>
 
+<!-- DATA NOTICE (shown when Domain listing data unavailable) -->
+<div id="data-notice" class="data-notice" style="display:none;">
+  <span>📋</span>
+  <span>Live listing details are sourced from Domain. For full listing data including price and agent details, visit <a href="https://www.domain.com.au" target="_blank">domain.com.au</a>.</span>
+</div>
+
 <!-- VERDICT -->
 <div class="verdict-bar">
   <div class="verdict-card">
     <div class="verdict-icon">⚡</div>
     <div>
-      <div class="verdict-label">BuyerSide Verdict</div>
+      <div class="verdict-label">ClearOffer Analysis</div>
       <div class="verdict-text">Priced <strong>at the top of the comparable range</strong> — comparable sales in Chelmer support $1.62M–$1.73M for this configuration. 23 days on market suggests <strong>vendor is open to conversation</strong>. Flood overlay is a factor — this street had Q100 inundation in 2022. The brief tells you what that means for insurance and future value.</div>
     </div>
   </div>
+  <p class="verdict-source">Based on comparable sales, flood overlay data, zoning rules, and days on market signals. Full negotiation intelligence in the Buyer's Brief.</p>
 </div>
 
 <!-- MAIN CONTENT -->
@@ -1164,7 +1206,7 @@
     <!-- UPGRADE SECTION -->
     <div id="upgrade-section" class="upgrade-strip">
       <div class="upgrade-title">Get the full Buyer's Brief</div>
-      <div class="upgrade-subtitle">The research your buyers agent would do — without the $15,000 fee. Everything you need to make a confident offer on this property.</div>
+      <div class="upgrade-subtitle">Independent property analysis — without the $15,000 fee. Everything you need to make a confident offer on this property.</div>
 
       <div class="upgrade-features">
         <div class="upgrade-feature">Specific offer range & opening position</div>
@@ -1185,7 +1227,7 @@
         <button class="btn-brief-large" id="checkout-btn" onclick="startCheckout()">Get the Buyer's Brief →</button>
       </div>
 
-      <div class="upgrade-disclaimer">Delivered on-screen instantly. Emailed as PDF. Stored 30 days. Independent analysis — BuyerSide has no relationship with the selling agent.</div>
+      <div class="upgrade-disclaimer">Delivered on-screen instantly. Emailed as PDF. Stored 30 days. Independent analysis — ClearOffer has no relationship with the selling agent.</div>
     </div>
 
   </div><!-- /left-col -->
@@ -1282,10 +1324,11 @@
 
 <!-- FOOTER -->
 <div style="border-top: 1px solid var(--rule); padding: 28px 32px; max-width: 980px; margin: 0 auto;">
-  <div class="footer-brand">BuyerSide — Scout Report</div>
+  <div class="footer-brand">ClearOffer — Scout Report</div>
   <div class="footer-disclaimer">
-    This report is market research and analysis, not a formal property valuation. It is not suitable for lending, legal, or insurance purposes. BuyerSide is not a registered property valuer. Property data sourced from Domain API, PropTechData, and publicly available records. Comparable sales data reflects settled transactions and may not represent all recent activity. Always obtain independent legal and financial advice before purchasing property.
+    This report is market research and analysis, not a formal property valuation. It is not suitable for lending, legal, or insurance purposes. ClearOffer is not a registered property valuer. Property data sourced from Domain API, ZoneIQ, and publicly available records. Comparable sales data reflects settled transactions and may not represent all recent activity. Always obtain independent legal and financial advice before purchasing property.
   </div>
+  <div style="font-size:11px; color:var(--text-dim); margin-top:8px;">© 2026 ClearOffer</div>
 </div>
 
 <script>
@@ -1297,7 +1340,7 @@
 
   // Update address in header immediately from URL params
   if (currentAddress) {
-    document.title = 'BuyerSide — Scout Report: ' + currentAddress;
+    document.title = 'ClearOffer — Scout Report: ' + currentAddress;
     const parts = currentAddress.split(', ');
     document.getElementById('topbar-address').textContent = parts[0] || currentAddress;
     document.getElementById('hero-address').innerHTML = parts.length > 1
@@ -1395,14 +1438,22 @@
       document.getElementById('hero-address').innerHTML = parts.length > 1
         ? parts[0] + ',<br>' + parts.slice(1).join(', ')
         : addr;
-      document.title = 'BuyerSide — Scout Report: ' + addr;
+      document.title = 'ClearOffer — Scout Report: ' + addr;
     }
+
+    // Data notice — show when Domain listing unavailable
+    const notice = document.getElementById('data-notice');
+    if (notice) notice.style.display = !l.isOnMarket ? 'flex' : 'none';
 
     // Listing price
     const price = l.listingPrice;
-    document.getElementById('hero-price').textContent = (price && price !== 'Contact agent') ? price : 'Contact agent';
-    document.getElementById('price-label').textContent = l.isOnMarket ? 'Listing price' : 'Not currently listed';
-    document.getElementById('cell-price').textContent = (price && price !== 'Contact agent') ? price : '—';
+    document.getElementById('hero-price').innerHTML = (price && price !== 'Contact agent')
+      ? price
+      : '<span class="placeholder-text">See agent listing</span>';
+    document.getElementById('price-label').textContent = l.isOnMarket ? 'Listing price' : 'Listing price';
+    document.getElementById('cell-price').innerHTML = (price && price !== 'Contact agent')
+      ? price
+      : '<span class="placeholder-text">See agent listing</span>';
 
     // Meta pills
     document.getElementById('meta-beds').innerHTML = p.bedrooms ? `🛏 <span>${p.bedrooms}</span> bed` : '🛏 <span>—</span>';
@@ -1411,14 +1462,18 @@
     document.getElementById('meta-land').innerHTML = p.landArea ? `📐 <span>${p.landArea} m²</span>` : '📐 <span>—</span>';
     document.getElementById('meta-dom').innerHTML = l.daysOnMarket != null
       ? `Listed <span>${l.daysOnMarket} days ago</span>`
-      : 'Listed <span>—</span>';
+      : 'Listed <span class="placeholder-text">recently</span>';
     document.getElementById('meta-agent').innerHTML = l.agencyName
       ? `Agent: <span>${l.agencyName}</span>`
-      : 'Agent: <span>—</span>';
+      : 'Agent: <span class="placeholder-text">Contact selling agent</span>';
 
     // Data grid cells
-    document.getElementById('cell-dom').textContent = l.daysOnMarket != null ? l.daysOnMarket : '—';
-    document.getElementById('cell-land').textContent = p.landArea ? p.landArea + ' m²' : '—';
+    document.getElementById('cell-dom').innerHTML = l.daysOnMarket != null
+      ? l.daysOnMarket
+      : '<span class="placeholder-text">Listed recently</span>';
+    document.getElementById('cell-land').innerHTML = p.landArea
+      ? p.landArea + ' m²'
+      : '<span class="placeholder-text">See contract</span>';
     document.getElementById('cell-type').textContent = p.propertyType || '—';
 
     // Days on market sidebar
@@ -1436,8 +1491,12 @@
       document.getElementById('agent-name').textContent = l.agentName;
       const initials = l.agentName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
       document.getElementById('agent-avatar').textContent = initials;
+    } else {
+      document.getElementById('agent-name').innerHTML = '<span class="placeholder-text">Contact selling agent</span>';
     }
-    if (l.agencyName) document.getElementById('agent-agency').textContent = l.agencyName;
+    if (l.agencyName) {
+      document.getElementById('agent-agency').textContent = l.agencyName;
+    }
 
     // Flood
     renderFlood(f);
