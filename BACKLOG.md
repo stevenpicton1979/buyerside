@@ -8,6 +8,7 @@ Claude Code reads this file at the start of every session and works through task
 - [ ] PropTechData credentials — emailed hello@proptechdata.com.au, awaiting response
 
 ## Ready to build now (unblocked)
+- [ ] Add basic smoke tests — test Scout Report loads for a known address, test Buyer's Brief Stripe checkout creates a session. Use Jest + supertest.
 - [ ] Replace Scout Report placeholder data with live ZoneIQ API calls
 - [ ] Add bushfire overlay to Scout Report — once ZoneIQ Sprint 8 live
 - [ ] Improve Scout Report design — trust signals, clearer value prop before $149 paywall
