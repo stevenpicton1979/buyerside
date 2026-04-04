@@ -36,6 +36,41 @@ module.exports = async (req, res) => {
     // Don't fail the request if storage fails
   }
 
+  // Send Scout Report confirmation email via Resend
+  if (process.env.RESEND_API_KEY) {
+    try {
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: 'ClearOffer <hello@clearoffer.com.au>',
+          to: email,
+          subject: 'Your ClearOffer Scout Report',
+          html: `
+            <h2>Your Scout Report is ready</h2>
+            <p>We've generated your free Scout Report for <strong>${address}</strong>.</p>
+            <p>Your report includes flood risk assessment, zoning analysis, comparable sales, and an AI-powered property verdict.</p>
+            <p>If you found the Scout Report useful, the full <strong>Buyer's Brief ($149)</strong> includes:</p>
+            <ul>
+              <li>Specific offer recommendation with reasoning</li>
+              <li>Negotiation leverage analysis</li>
+              <li>5-10 year suburb outlook</li>
+              <li>What the agent won't tell you</li>
+            </ul>
+            <p><a href="https://clearoffer.com.au">Get your Buyer's Brief →</a></p>
+            <p style="color:#999;font-size:12px;">ClearOffer — Independent property analysis for Brisbane buyers.</p>
+          `
+        })
+      })
+    } catch (emailErr) {
+      console.error('Email send failed:', emailErr)
+      // Don't fail the request if email fails
+    }
+  }
+
   // Fetch data from all sources in parallel
   const [listingData, zoniqData] = await Promise.allSettled([
     fetchDomainListing(address),

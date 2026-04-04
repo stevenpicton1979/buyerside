@@ -1,4 +1,62 @@
-# BuyerSide — Sprint 2 Decisions Log
+# ClearOffer — Decisions Log
+
+---
+
+## Sprint 3 — Rebrand + Polish
+
+### Files renamed BuyerSide → ClearOffer
+All user-visible strings replaced. File names and folder names left unchanged to avoid breaking imports.
+
+| File | Changes |
+|---|---|
+| `public/index.html` | title, meta description, logo, hero headline, hero sub, how-it-works steps, what-section heading, case stats, footer, copyright |
+| `public/scout-report.html` | title, logo, verdict label, upgrade subtitle, upgrade disclaimer, footer, JS doc.title (×2) |
+| `public/buyers-brief.html` | title, logo, cover-meta-label, leverage prose, verdict header, footer disclaimer, footer stamp, AI system prompt |
+| `api/stripe-webhook.js` | email header, email disclaimer, from address, subject line |
+| `api/create-checkout.js` | Stripe product name |
+| `api/property-lookup.js` | Nominatim User-Agent header |
+
+**Skipped (intentionally not renamed):**
+- File names and folder names
+- Environment variable names (`DOMAIN_CLIENT_ID`, `SUPABASE_URL`, etc.)
+- Supabase table names (`scout_reports`, `paid_reports`)
+- GitHub repo name (`buyerside`)
+- Vercel project name
+- "Buyer's Brief" product name — kept as-is, not in the rename table
+
+### Smart placeholders for missing Domain data
+When Domain listing API returns no data (sandbox limitations), the Scout Report now shows context-appropriate placeholders instead of bare dashes:
+- Listing price → "See agent listing" (italic, muted)
+- Days on market → "Listed recently"
+- Agent name → "Contact selling agent"
+- Land size → "See contract"
+- Beds/baths/cars → keep dashes (brief specified)
+
+A `.data-notice` banner appears below the hero strip when `listing.isOnMarket` is false, explaining that live data is sourced from domain.com.au.
+
+### Confirmation email (Scout Report)
+Added Resend email call to `submit-email.js` after successful email gate submission. Sends from `hello@clearoffer.com.au`. Guarded by `process.env.RESEND_API_KEY` check — silently skipped if key not set. Email failures are caught and logged, never block the response.
+
+**Status:** Resend API key already present in `.env.local`. Email will send from `hello@clearoffer.com.au` once domain is verified in Resend dashboard.
+
+---
+
+## clearoffer.com.au — DNS Configuration
+
+Domain purchased via VentraIP. To connect to Vercel:
+
+1. In Vercel → buyerside project → Settings → Domains → Add Domain → `clearoffer.com.au`
+2. Vercel will display DNS records to add (typically an A record for the apex domain and a CNAME for `www`)
+3. In VentraIP → DNS Management for `clearoffer.com.au` → add the A record and/or CNAME records that Vercel specifies
+4. Wait 24–48 hours for DNS propagation
+
+**Do not attempt to configure DNS automatically** — this requires manual steps in both Vercel and VentraIP dashboards.
+
+Also update `BASE_URL` environment variable in Vercel from `https://buyerside.stevenpicton.ai` to `https://clearoffer.com.au` once the domain is live.
+
+---
+
+## Sprint 2 — Wire Real Data
 
 ## Domain OAuth
 
