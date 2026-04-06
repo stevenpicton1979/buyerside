@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ClearOffer — Coming Soon</title>
+  <meta name="description" content="Independent property intelligence for Queensland buyers. Launching soon.">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 460px;
+      text-align: center;
+    }
+
+    .wordmark {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #f8fafc;
+      letter-spacing: -0.5px;
+      margin-bottom: 1.5rem;
+    }
+
+    .tagline {
+      font-size: 1.125rem;
+      color: #94a3b8;
+      line-height: 1.6;
+      margin-bottom: 0.75rem;
+    }
+
+    .launching {
+      font-size: 0.9rem;
+      color: #475569;
+      margin-bottom: 2.5rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .form input[type="email"] {
+      width: 100%;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      color: #f8fafc;
+      font-size: 1rem;
+      padding: 13px 16px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .form input[type="email"]::placeholder { color: #475569; }
+    .form input[type="email"]:focus { border-color: #6366f1; }
+
+    .form button {
+      width: 100%;
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 13px 24px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .form button:hover    { background: #4f46e5; }
+    .form button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .feedback {
+      margin-top: 14px;
+      font-size: 0.875rem;
+      min-height: 1.25rem;
+    }
+    .feedback.success { color: #34d399; }
+    .feedback.error   { color: #f87171; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="wordmark">ClearOffer</div>
+    <p class="tagline">Independent property intelligence for Queensland buyers.</p>
+    <p class="launching">Launching soon</p>
+
+    <form class="form" id="notify-form">
+      <input
+        type="email"
+        id="email-input"
+        placeholder="Get notified when we launch"
+        autocomplete="email"
+        required
+      >
+      <button type="submit" id="submit-btn">Notify me</button>
+    </form>
+    <p class="feedback" id="feedback" aria-live="polite"></p>
+  </div>
+
+  <script>
+    const form      = document.getElementById('notify-form');
+    const emailEl   = document.getElementById('email-input');
+    const btn       = document.getElementById('submit-btn');
+    const feedback  = document.getElementById('feedback');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = emailEl.value.trim();
+      if (!email) return;
+
+      btn.disabled = true;
+      btn.textContent = 'Submitting…';
+      feedback.textContent = '';
+      feedback.className = 'feedback';
+
+      try {
+        const res = await fetch('/api/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+
+        if (res.ok) {
+          feedback.textContent = 'You\'re on the list — we\'ll be in touch.';
+          feedback.className = 'feedback success';
+          emailEl.value = '';
+        } else {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || 'Submission failed');
+        }
+      } catch (err) {
+        feedback.textContent = err.message || 'Something went wrong. Please try again.';
+        feedback.className = 'feedback error';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Notify me';
+      }
+    });
+  </script>
+</body>
+</html>
