@@ -920,10 +920,10 @@
     <div class="verdict-icon">⚡</div>
     <div>
       <div class="verdict-label">ClearOffer Analysis</div>
-      <div class="verdict-text">Priced <strong>at the top of the comparable range</strong> — comparable sales in Chelmer support $1.62M–$1.73M for this configuration. 23 days on market suggests <strong>vendor is open to conversation</strong>. Flood overlay is a factor — this street had Q100 inundation in 2022. The brief tells you what that means for insurance and future value.</div>
+      <div class="verdict-text" id="verdict-text">Enter your email below to unlock the full overlay analysis, comparable sales context, and what the days-on-market signal means for your negotiation.</div>
     </div>
   </div>
-  <p class="verdict-source">Based on comparable sales, flood overlay data, zoning rules, and days on market signals. Full negotiation intelligence in the Buyer's Brief.</p>
+  <p class="verdict-source" id="verdict-source">Based on flood overlay data, zoning rules, and suburb market data. Full negotiation intelligence in the Buyer's Brief.</p>
 </div>
 
 <!-- MAIN CONTENT -->
@@ -962,13 +962,13 @@
         </div>
         <div class="data-cell">
           <div class="data-cell-label">Year Built (est.)</div>
-          <div class="data-cell-value">1958</div>
-          <div class="data-cell-sub">Renovated 2018</div>
+          <div class="data-cell-value" style="font-size:17px;"><span class="placeholder-text">See contract</span></div>
+          <div class="data-cell-sub">Not available from listing data</div>
         </div>
         <div class="data-cell">
           <div class="data-cell-label">Council Rates (approx.)</div>
-          <div class="data-cell-value" style="font-size:17px;">$3,200</div>
-          <div class="data-cell-sub">Per annum</div>
+          <div class="data-cell-value" style="font-size:17px;"><span class="placeholder-text">See contract</span></div>
+          <div class="data-cell-sub">Varies by property</div>
         </div>
       </div>
     </div>
@@ -977,11 +977,12 @@
     <div class="section">
       <div class="section-header">
         <span class="section-num">02</span>
-        <span class="section-title">Comparable Sales — Chelmer (12 months)</span>
+        <span class="section-title" id="comparables-heading">Comparable Sales</span>
       </div>
 
       <div id="comparables-content">
-      <div class="content-card" style="padding: 0; overflow: hidden;">
+      <!-- Comparable sales teaser — full data in Buyer's Brief -->
+      <div class="content-card" style="padding: 0; overflow: hidden; position: relative;">
         <table class="comp-table">
           <thead>
             <tr>
@@ -990,64 +991,36 @@
               <th>Land</th>
               <th>Sold</th>
               <th>Price</th>
-              <th>vs Listing</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td class="addr">9 Oxley Rd, Chelmer</td>
-              <td>4 / 2</td>
-              <td>650m²</td>
-              <td>Feb '25</td>
-              <td class="price">$1,731,000</td>
-              <td class="delta-neg">−1.1%</td>
+              <td class="addr" style="filter:blur(5px); user-select:none;">█████████████████</td>
+              <td style="filter:blur(5px); user-select:none;">█ / █</td>
+              <td style="filter:blur(5px); user-select:none;">███m²</td>
+              <td style="filter:blur(5px); user-select:none;">███ '25</td>
+              <td class="price" style="filter:blur(5px); user-select:none;">$█,███,███</td>
             </tr>
             <tr>
-              <td class="addr">3 Sherwood Rd, Chelmer</td>
-              <td>4 / 2</td>
-              <td>580m²</td>
-              <td>Jan '25</td>
-              <td class="price">$1,625,000</td>
-              <td class="delta-neg">−7.1%</td>
+              <td class="addr" style="filter:blur(5px); user-select:none;">█████████████████</td>
+              <td style="filter:blur(5px); user-select:none;">█ / █</td>
+              <td style="filter:blur(5px); user-select:none;">███m²</td>
+              <td style="filter:blur(5px); user-select:none;">███ '25</td>
+              <td class="price" style="filter:blur(5px); user-select:none;">$█,███,███</td>
             </tr>
             <tr>
-              <td class="addr">22 Dunmore St, Chelmer</td>
-              <td>4 / 3</td>
-              <td>612m²</td>
-              <td>Dec '24</td>
-              <td class="price">$1,810,000</td>
-              <td class="delta-pos">+3.4%</td>
-            </tr>
-            <tr>
-              <td class="addr">47 Oxley Rd, Chelmer</td>
-              <td>3 / 2</td>
-              <td>590m²</td>
-              <td>Nov '24</td>
-              <td class="price">$1,520,000</td>
-              <td class="delta-neg">−13.1%</td>
-            </tr>
-            <tr>
-              <td class="addr">6 Moorak St, Sherwood</td>
-              <td>4 / 2</td>
-              <td>625m²</td>
-              <td>Oct '24</td>
-              <td class="price">$1,680,000</td>
-              <td class="delta-neg">−4.0%</td>
-            </tr>
-            <tr class="this-property">
-              <td class="addr">14 Riverview Tce ← This property</td>
-              <td>4 / 2</td>
-              <td>607m²</td>
-              <td>Listed</td>
-              <td class="price">$1,750,000</td>
-              <td class="delta-neg">—</td>
+              <td class="addr" style="filter:blur(5px); user-select:none;">█████████████████</td>
+              <td style="filter:blur(5px); user-select:none;">█ / █</td>
+              <td style="filter:blur(5px); user-select:none;">███m²</td>
+              <td style="filter:blur(5px); user-select:none;">███ '24</td>
+              <td class="price" style="filter:blur(5px); user-select:none;">$█,███,███</td>
             </tr>
           </tbody>
         </table>
-      </div>
-
-      <div class="inline-note">
-        Comparable range for a 4-bed/2-bath on 580–650m² in Chelmer: <strong style="color:var(--cream-dim)">$1,625,000 – $1,810,000</strong>. Listing price of $1,750,000 sits in the upper third. The $1,810,000 comp at 22 Dunmore St had 3 bathrooms and a larger renovation budget.
+        <div style="background: linear-gradient(180deg, transparent 0%, rgba(13,27,42,0.8) 40%, rgba(13,27,42,0.98) 100%); padding: 18px 20px 20px; text-align: center; border-top: 1px solid var(--border);">
+          <div style="font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.12em; text-transform:uppercase; color:var(--amber); background:rgba(212,134,10,0.1); border:1px solid rgba(212,134,10,0.3); padding:3px 10px; border-radius:2px; display:inline-block; margin-bottom:8px;">Included in your Scout Report</div>
+          <div style="font-size:13px; color:var(--text-secondary);">Comparable sales — unlocked when you enter your email above.</div>
+        </div>
       </div>
       </div><!-- /comparables-content -->
     </div>
@@ -1059,39 +1032,32 @@
         <span class="section-title" id="suburb-heading">Suburb Snapshot</span>
       </div>
 
-      <div class="content-card">
+      <div class="content-card" id="suburb-stats-card">
         <div class="stat-row">
           <span class="stat-label">Median house price (houses)</span>
-          <span class="stat-value">$1,610,000</span>
+          <span class="stat-value" id="stat-median">—</span>
         </div>
         <div class="stat-row">
           <span class="stat-label">Median DOM (suburb avg)</span>
-          <span class="stat-value amber">16 days</span>
+          <span class="stat-value amber" id="stat-dom">—</span>
         </div>
         <div class="stat-row">
           <span class="stat-label">12-month price growth</span>
-          <span class="stat-value positive">+9.2%</span>
+          <span class="stat-value positive" id="stat-growth">—</span>
         </div>
         <div class="stat-row">
           <span class="stat-label">10-year CAGR</span>
-          <span class="stat-value positive">+7.4% p.a.</span>
-        </div>
-        <div class="stat-row">
-          <span class="stat-label">Vendor discount (suburb avg)</span>
-          <span class="stat-value amber">−2.8%</span>
+          <span class="stat-value positive" id="stat-cagr">—</span>
         </div>
         <div class="stat-row">
           <span class="stat-label">Clearance rate (past 90 days)</span>
-          <span class="stat-value positive">82%</span>
-        </div>
-        <div class="stat-row">
-          <span class="stat-label">Total listings currently active</span>
-          <span class="stat-value">7 houses</span>
+          <span class="stat-value" id="stat-clearance">—</span>
         </div>
         <div class="stat-row">
           <span class="stat-label">Primary school catchment</span>
-          <span class="stat-value" id="school-catchment">School catchment data loading</span>
+          <span class="stat-value" id="school-catchment">Loading…</span>
         </div>
+        <div id="suburb-stats-note" style="display:none;" class="inline-note" style="margin-top:8px; font-size:12px;"></div>
       </div>
 
       <div class="section-header" style="margin-top:20px;">
@@ -1100,21 +1066,22 @@
 
       <div class="content-card">
         <div class="meter-row">
-          <div class="meter-label">Buyer demand <span>High</span></div>
-          <div class="meter-track"><div class="meter-fill green" style="width: 78%"></div></div>
+          <div class="meter-label">Buyer demand <span id="demand-label">—</span></div>
+          <div class="meter-track"><div class="meter-fill green" id="demand-bar" style="width: 50%"></div></div>
         </div>
         <div class="meter-row">
-          <div class="meter-label">Active listing supply <span>Low</span></div>
-          <div class="meter-track"><div class="meter-fill amber" style="width: 28%"></div></div>
+          <div class="meter-label">Active listing supply <span id="supply-label">—</span></div>
+          <div class="meter-track"><div class="meter-fill amber" id="supply-bar" style="width: 50%"></div></div>
         </div>
         <div class="meter-row">
-          <div class="meter-label">Vendor motivation signal <span>Moderate</span></div>
-          <div class="meter-track"><div class="meter-fill amber" style="width: 52%"></div></div>
+          <div class="meter-label">Vendor motivation signal <span id="vendor-label">—</span></div>
+          <div class="meter-track"><div class="meter-fill amber" id="vendor-bar" style="width: 50%"></div></div>
         </div>
         <div class="meter-row">
-          <div class="meter-label">Price negotiability <span>Moderate</span></div>
-          <div class="meter-track"><div class="meter-fill amber" style="width: 45%"></div></div>
+          <div class="meter-label">Price negotiability <span id="neg-label">—</span></div>
+          <div class="meter-track"><div class="meter-fill amber" id="neg-bar" style="width: 50%"></div></div>
         </div>
+        <div id="meters-note" style="font-size:11px; color:var(--text-dim); margin-top:8px;">Based on current suburb data.</div>
       </div>
     </div>
 
@@ -1248,11 +1215,10 @@
     <!-- ESTIMATE CARD -->
     <div class="sidebar-card" id="estimate-card">
       <div class="sidebar-card-title">Price Estimate</div>
-      <div style="padding: 12px 0; font-size:13.5px; color:var(--text-secondary); line-height:1.55;">
-        Independent price estimate included in Buyer's Brief
-      </div>
-      <div class="inline-note" style="margin-top:8px; font-size:12px;">
-        Domain Price Estimation unlocked in full analysis.
+      <div style="padding: 10px 0;">
+        <div style="font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.12em; text-transform:uppercase; color:var(--amber); background:rgba(212,134,10,0.08); border:1px solid rgba(212,134,10,0.25); padding:3px 10px; border-radius:2px; display:inline-block; margin-bottom:10px;">Buyer's Brief</div>
+        <div style="font-size:14px; color:var(--cream); font-weight:500; margin-bottom:6px;">Estimated value range — unlocked in your Scout Report</div>
+        <div style="font-size:12.5px; color:var(--text-secondary); line-height:1.5;">Based on comparable sales data, independent of the asking price. Included in your free Scout Report when you enter your email.</div>
       </div>
     </div>
 
@@ -1526,10 +1492,33 @@
     // Price estimate card
     renderEstimate(d.priceEstimate);
 
+    // Suburb stats from lookup table
+    renderSuburbStats(d.suburbStats);
+
+    // Verdict text (post-email unlock)
+    if (d.flood) {
+      const hasFlood = d.flood.hasFloodOverlay;
+      const hasBushfire = d.bushfire && d.bushfire.hasBushfireOverlay;
+      const riskSummary = [
+        hasFlood ? 'flood overlay present' : 'no flood overlay',
+        hasBushfire ? 'bushfire overlay present' : 'no bushfire overlay'
+      ].join(', ');
+      const domSignal = (d.listing && d.listing.daysOnMarket != null)
+        ? ` ${d.listing.daysOnMarket} days on market — ` + (d.listing.daysOnMarket > 30 ? 'vendor flexibility expected.' : 'vendor not yet under pressure.')
+        : '';
+      const verdictEl = document.getElementById('verdict-text');
+      if (verdictEl) {
+        verdictEl.innerHTML = `This property has <strong>${riskSummary}</strong>.${domSignal ? ' ' + domSignal : ''} Full comparable sales range, flood impact analysis, and offer recommendation in the Buyer's Brief.`;
+      }
+    }
+
     // Suburb heading
     const suburbMatch = addr.match(/,\s*([A-Za-z ]+?)\s+(?:QLD|NSW|VIC|WA|SA|TAS|ACT|NT)/);
     if (suburbMatch) {
-      document.getElementById('suburb-heading').textContent = suburbMatch[1].trim() + ' — Suburb Snapshot';
+      const subName = suburbMatch[1].trim();
+      document.getElementById('suburb-heading').textContent = subName + ' — Suburb Snapshot';
+      const compHead = document.getElementById('comparables-heading');
+      if (compHead) compHead.textContent = 'Comparable Sales — ' + subName + ' (12 months)';
     }
   }
 
@@ -1578,6 +1567,55 @@
     if (source) source.textContent = 'Source: Brisbane City Plan 2014';
   }
 
+  function renderSuburbStats(stats) {
+    const fmtPrice = v => v ? '$' + (v >= 1000000 ? (v/1000000).toFixed(2).replace(/\.?0+$/, '') + 'M' : (v/1000).toFixed(0) + 'k') : '—';
+    const fmtPct = v => v != null ? (v > 0 ? '+' : '') + v.toFixed(1) + '%' : '—';
+
+    if (stats) {
+      const el = id => document.getElementById(id);
+      if (el('stat-median')) el('stat-median').textContent = fmtPrice(stats.medianPrice);
+      if (el('stat-dom')) { el('stat-dom').textContent = stats.medianDomDays + ' days'; }
+      if (el('stat-growth')) { el('stat-growth').textContent = fmtPct(stats.growth12m); el('stat-growth').className = 'stat-value ' + (stats.growth12m > 0 ? 'positive' : 'negative'); }
+      if (el('stat-cagr')) el('stat-cagr').textContent = fmtPct(stats.cagr10y) + ' p.a.';
+      if (el('stat-clearance')) { const cr = stats.clearanceRate; el('stat-clearance').textContent = cr + '%'; el('stat-clearance').className = 'stat-value ' + (cr >= 75 ? 'positive' : cr >= 60 ? 'amber' : 'negative'); }
+
+      // Derive demand/supply signals from stats
+      // clearanceRate: proxy for demand (high clearance = high demand)
+      // medianDomDays: proxy for supply pressure (low DOM = low supply / high demand)
+      const demandPct = Math.min(95, Math.max(20, Math.round((stats.clearanceRate - 40) * 1.8)));
+      const supplyPct = Math.min(80, Math.max(15, Math.round(100 - (stats.clearanceRate - 40) * 1.5)));
+      const domSignalPct = stats.medianDomDays ? Math.min(80, Math.max(20, Math.round(100 - stats.medianDomDays * 1.8))) : 50;
+      const negPct = Math.min(75, Math.max(20, Math.round(100 - demandPct * 0.7)));
+
+      const demandLabel = demandPct > 70 ? 'High' : demandPct > 50 ? 'Moderate' : 'Low';
+      const supplyLabel = supplyPct < 35 ? 'Low' : supplyPct < 55 ? 'Moderate' : 'Elevated';
+      const vendorLabel = domSignalPct > 55 ? 'Low' : domSignalPct > 35 ? 'Moderate' : 'High';
+      const negLabel = negPct > 55 ? 'High' : negPct > 35 ? 'Moderate' : 'Low';
+
+      const setMeter = (barId, labelId, pct, label) => {
+        const bar = document.getElementById(barId);
+        const lbl = document.getElementById(labelId);
+        if (bar) bar.style.width = pct + '%';
+        if (lbl) lbl.textContent = label;
+      };
+      setMeter('demand-bar', 'demand-label', demandPct, demandLabel);
+      setMeter('supply-bar', 'supply-label', supplyPct, supplyLabel);
+      setMeter('vendor-bar', 'vendor-label', domSignalPct, vendorLabel);
+      setMeter('neg-bar', 'neg-label', negPct, negLabel);
+
+      const note = document.getElementById('meters-note');
+      if (note) note.textContent = 'Based on suburb clearance rate and days-on-market data.';
+    } else {
+      // No lookup data — show neutral 50/50 with label
+      ['demand-label','supply-label','vendor-label','neg-label'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = 'Moderate';
+      });
+      const note = document.getElementById('meters-note');
+      if (note) note.textContent = 'Based on current suburb data. Specific data unavailable for this suburb.';
+    }
+  }
+
   function renderBushfire(b) {
     const dot = document.getElementById('bushfire-dot');
     const rating = document.getElementById('bushfire-rating');
@@ -1620,15 +1658,11 @@
   }
 
   function renderComparables(comparables) {
+    // When comparables array is empty, keep the teaser UI already in the HTML.
+    // When PropTechData is wired up (Sprint 10), populate a real table here.
+    if (!comparables || !comparables.length) return;
     const el = document.getElementById('comparables-content');
     if (!el) return;
-    if (!comparables.length) {
-      el.innerHTML = `
-        <div class="content-card" style="text-align:center; padding: 24px;">
-          <div style="font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-dim); margin-bottom:10px;">Comparable Sales</div>
-          <div style="font-size:14px; color:var(--text-secondary);">Full comparable sales analysis in Buyer's Brief</div>
-        </div>`;
-    }
     // Future: render table from comparables array when PropTechData wired up
   }
 

@@ -2,6 +2,60 @@
 
 ---
 
+## Sprint 5 — Live ZoneIQ data, suburb lookup table, smart stubs throughout Scout Report
+
+### Data Field Audit
+Full audit written as comment block at top of `api/property-lookup.js`. Summary:
+- Fields (a) live from ZoneIQ: flood, character, bushfire, zoning, schools — all rendering correctly for any Brisbane address.
+- Fields (b) Domain sandbox with stubs: listing price → "See agent listing", DOM → "Listed recently", agent → "Contact selling agent", beds/baths/cars → `—`, land → "See contract". All stubs confirmed wired and rendering correctly for non-Chelmer addresses.
+- Fields (c) hardcoded Chelmer mocks — all replaced in this sprint (see below).
+- Fields (d) already smart stubs: price estimate card — stub text updated to brief language.
+
+### Smart Stubs Confirmed Working
+Verified stub values from DECISIONS.md Sprint 3 all render correctly for non-Chelmer addresses when Domain returns null. No Chelmer hardcoded values leak. Stubs use `.placeholder-text` class (italic, muted grey).
+
+### Static Suburb Median Lookup Table
+- **Location:** `api/submit-email.js` — `SUBURB_MEDIANS` const at module level.
+- **Coverage:** 100 Brisbane suburbs curated from publicly available ABS / REA data (2024–2025).
+- **Data per suburb:** `median` (house price), `domDays` (median days on market), `growth12m` (% 12-month growth), `cagr10y` (10yr CAGR), `clearanceRate` (%)`.
+- **Lookup:** `getSuburbStats(suburb)` — case-insensitive, returns null if suburb not found.
+- **Usage:** Suburb extracted from address string in `extractSuburb()`. Stats returned in API response as `suburbStats` object.
+- **Update cadence:** Comment `// UPDATE QUARTERLY — source: ABS / REA public data` added at table definition.
+- **Override:** PropTechData (Sprint 10) will override this table when available.
+
+### Comparable Sales Teaser
+- **Previous:** Hardcoded 6-row Chelmer table in HTML — visible for all addresses.
+- **Now:** 3 placeholder rows with blurred/redacted content + teaser CTA: "Comparable sales — included in your free Scout Report." Curiosity-driven design, not an error state. Comparables are free per brief but withheld at Stage 1 to drive email gate conversion.
+- **renderComparables():** Updated to preserve teaser when comparables array is empty. Will render real table when PropTechData wired up (Sprint 10).
+
+### Price Estimate Teaser
+- **Previous:** "Independent price estimate included in Buyer's Brief" — vague.
+- **Now:** "Estimated value range — unlocked in your Scout Report" — matches brief language. Styled as locked/amber teaser.
+
+### Suburb Stats — Now Dynamic
+- **Previous:** Hardcoded Chelmer values for all addresses.
+- **Now:** `renderSuburbStats(d.suburbStats)` renders from lookup table data when available. All 6 stat rows (median, DOM, 12m growth, 10yr CAGR, clearance rate, school catchment) are dynamic.
+- **Fallback:** When suburb not in table, suburb stats show `—`.
+
+### Demand/Supply Meters — Now Derived
+- **Previous:** Hardcoded 78%/28%/52%/45% for all addresses.
+- **Now:** Derived from `clearanceRate` (demand proxy) and `medianDomDays` (supply pressure proxy) from the lookup table. Formula documented in `renderSuburbStats()`.
+- **Fallback:** When no suburb data, all meters show 50% (neutral) with label "Based on current suburb data. Specific data unavailable for this suburb."
+
+### Verdict Bar — Now Stub
+- **Previous:** Hardcoded Chelmer-specific text.
+- **Now:** Pre-email: generic "Enter your email below..." prompt. Post-email: dynamic text built from flood/bushfire overlay presence and days-on-market signal.
+
+### Year Built / Council Rates
+- **Previous:** Hardcoded "1958 / Renovated 2018" and "$3,200 p.a."
+- **Now:** "See contract" placeholder for both — correct for any address.
+
+### Nominatim Autocomplete Status (Sprint 5 verification)
+- Tested: Carindale address, New Farm Kent Street, Ascot suburb — all return QLD results.
+- Working correctly. Not replacing until Domain Address Suggestions API approved.
+
+---
+
 ## Sprint 4 — Supabase email gate, ZoneIQ validation, bushfire overlay, env cleanup
 
 ### Supabase Wiring Pattern
