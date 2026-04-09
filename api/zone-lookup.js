@@ -28,7 +28,7 @@ module.exports = async function handler(req, res) {
 };
 
 async function fetchZoneIQ(address) {
-  const url = `${ZONEIQ.URL}/api/zone-lookup?address=${encodeURIComponent(address)}`;
+  const url = `${ZONEIQ.URL}/api/lookup?address=${encodeURIComponent(address)}`;
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), ZONEIQ.TIMEOUT_MS);
@@ -47,22 +47,33 @@ async function fetchZoneIQ(address) {
     throw err;
   }
 
-  // Normalise response — build safe overlay object regardless of partial response
+  // Normalise v2.0.0 response
   // ZoneIQ returns HTTP 200 with meta.partial: true when zone not fully seeded
+  // overlays are ALWAYS returned even on partial responses
+  if (!raw.success) throw new Error(`ZoneIQ returned success: false`);
+
   const partial = raw.meta?.partial === true;
   const overlays = raw.overlays || {};
+
+  // Detect state from council name (QLD default for ClearOffer Brisbane launch)
+  const council = (raw.zone?.council || '').toLowerCase();
+  const state = council.includes('sydney') || council.includes('parramatta') || council.includes('blacktown')
+    ? 'NSW'
+    : council.includes('melbourne') || council.includes('yarra') || council.includes('port phillip')
+    ? 'VIC'
+    : 'QLD';
 
   return {
     ok: true,
     partial,
-    address: raw.address || address,
+    address: raw.query?.address_resolved || raw.query?.address_input || address,
     zone: {
       code: raw.zone?.code || null,
       name: raw.zone?.name || null,
       council: raw.zone?.council || null,
     },
     overlays: {
-      flood: normaliseFlood(overlays.flood, raw.meta?.state),
+      flood: normaliseFlood(overlays.flood, state),
       bushfire: normaliseBushfire(overlays.bushfire),
       heritage: normaliseHeritage(overlays.heritage),
       character: normaliseCharacter(overlays.character),
@@ -70,7 +81,7 @@ async function fetchZoneIQ(address) {
       schools: normaliseSchools(overlays.schools),
     },
     meta: {
-      state: raw.meta?.state || 'QLD',
+      state,
       partial,
       source: 'zoneiq',
     },
@@ -83,20 +94,21 @@ async function fetchZoneIQ(address) {
 // Never crash on unexpected shape.
 
 function normaliseFlood(flood, state) {
-  if (!flood || flood.affected === false) return { affected: false };
-  if (flood.affected !== true) return { affected: false };
+  // v2.0.0 field: has_flood_overlay
+  if (!flood || !flood.has_flood_overlay) return { affected: false };
 
-  // QLD: FPA codes (R1, R2A, R3, R4, R5)
-  // NSW: binary + LEP reference
-  // VIC: LSIO/FO/SBO overlay type
+  // flood_category = e.g. "FHA_R2A", "FHA_R5", "LSIO", "FO", "SBO"
+  // overlay_type   = e.g. "brisbane_river", "overland_flow", "NSW_EPI", "Vicmap_Planning"
   const s = (state || 'QLD').toUpperCase();
+  const code = flood.flood_category || null;
+  const overlayType = flood.overlay_type || null;
 
   if (s === 'QLD') {
     return {
       affected: true,
-      code: flood.code || null,       // e.g. "FHA_R2A"
-      category: flood.category || null, // e.g. "Medium flood hazard"
-      plain: floodPlainEnglish(flood.code),
+      code,
+      category: flood.risk_level || null,
+      plain: floodPlainEnglish(code),
     };
   }
   if (s === 'NSW') {
@@ -105,18 +117,18 @@ function normaliseFlood(flood, state) {
       code: null,
       category: null,
       plain: 'Flood affected — refer to local LEP for details.',
-      lep: flood.lep || null,
+      lep: flood.risk_level || null,
     };
   }
   if (s === 'VIC') {
     return {
       affected: true,
-      code: flood.overlay_type || null, // LSIO, FO, SBO
+      code,           // LSIO, FO, SBO
       category: null,
-      plain: vicFloodPlain(flood.overlay_type),
+      plain: vicFloodPlain(code),
     };
   }
-  return { affected: true, code: flood.code || null, plain: 'Flood overlay present.' };
+  return { affected: true, code, plain: 'Flood overlay present.' };
 }
 
 function floodPlainEnglish(code) {
@@ -141,45 +153,51 @@ function vicFloodPlain(type) {
 }
 
 function normaliseBushfire(bushfire) {
-  if (!bushfire || bushfire.affected === false) return { affected: false };
+  // v2.0.0 field: has_bushfire_overlay
+  if (!bushfire || !bushfire.has_bushfire_overlay) return { affected: false };
+  const cat = bushfire.intensity_class || null;
   return {
     affected: true,
-    category: bushfire.category || null,
-    plain: bushfire.category
-      ? `Bushfire hazard — ${bushfire.category}.`
-      : 'Bushfire overlay present.',
+    category: cat,
+    plain: cat ? `Bushfire hazard — ${cat}.` : 'Bushfire overlay present.',
   };
 }
 
 function normaliseHeritage(heritage) {
-  if (!heritage || heritage.listed === false) return { listed: false };
+  // v2.0.0 field: is_heritage
+  if (!heritage || !heritage.is_heritage) return { listed: false };
+  const name = heritage.heritage_name || null;
+  const type = heritage.heritage_type || null;
   return {
     listed: true,
-    type: heritage.type || null,   // 'local' | 'state'
-    name: heritage.name || null,
-    plain: heritage.name
-      ? `Heritage listed — ${heritage.name}.`
+    type: type ? (type.toLowerCase().includes('state') ? 'state' : 'local') : null,
+    name,
+    plain: name
+      ? `Heritage listed — ${name}.`
       : 'Heritage overlay — planning approval likely required for modifications.',
   };
 }
 
 function normaliseCharacter(character) {
-  if (!character || character.applicable === false) return { applicable: false };
+  // v2.0.0 field: has_character_overlay
+  if (!character || !character.has_character_overlay) return { applicable: false };
   return {
     applicable: true,
-    type: character.type || null,
+    type: character.overlay_type || null,
     plain: 'Character overlay — design standards apply to any extensions or renovations.',
   };
 }
 
 function normaliseNoise(noise) {
-  if (!noise || noise.affected === false) return { affected: false };
+  // v2.0.0 field: has_noise_overlay, anef_contour, airport
+  if (!noise || !noise.has_noise_overlay) return { affected: false };
+  const anef = noise.anef_contour ? parseInt(noise.anef_contour, 10) || noise.anef_contour : null;
   return {
     affected: true,
-    anef: noise.anef || null,   // e.g. 20, 25, 30
+    anef,
     airport: noise.airport || null,
-    plain: noise.anef
-      ? `Aircraft noise zone ANEF ${noise.anef} — ${noiseImpact(noise.anef)}.`
+    plain: anef
+      ? `Aircraft noise zone ANEF ${anef} — ${noiseImpact(anef)}.`
       : 'Aircraft noise overlay present.',
   };
 }

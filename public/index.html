@@ -205,21 +205,53 @@
     // State
     let selectedAddress = '';
     let autocompleteTimer = null;
+    let autocompleteActiveIndex = -1;
     let suburbStats = null;
     let listingData = null;
 
     // ---- Autocomplete ----
     const addressInput   = document.getElementById('address-input');
     const autocompleteEl = document.getElementById('autocomplete-list');
+    const searchBtn      = document.getElementById('search-btn');
+    const searchBtnIcon  = searchBtn.innerHTML; // cache original SVG
 
     addressInput.addEventListener('input', () => {
       clearTimeout(autocompleteTimer);
       const q = addressInput.value.trim();
-      if (q.length < 3) { hideAutocomplete(); return; }
+      if (q.length < 3) { hideAutocomplete(); setAutocompleteLoading(false); return; }
+      setAutocompleteLoading(true);
       autocompleteTimer = setTimeout(() => fetchSuggestions(q), 280);
     });
 
+    // Keyboard navigation: arrow keys select items, Enter confirms
     addressInput.addEventListener('keydown', e => {
+      const items = autocompleteEl.querySelectorAll('.autocomplete-item');
+      const isVisible = autocompleteEl.classList.contains('visible') && items.length > 0;
+
+      if (isVisible) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          autocompleteActiveIndex = Math.min(autocompleteActiveIndex + 1, items.length - 1);
+          updateActiveItem(items);
+          return;
+        }
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          autocompleteActiveIndex = Math.max(autocompleteActiveIndex - 1, -1);
+          updateActiveItem(items);
+          return;
+        }
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (autocompleteActiveIndex >= 0 && items[autocompleteActiveIndex]) {
+            items[autocompleteActiveIndex].click();
+          } else {
+            submitSearch();
+          }
+          return;
+        }
+        if (e.key === 'Escape') { hideAutocomplete(); return; }
+      }
       if (e.key === 'Enter') { e.preventDefault(); submitSearch(); }
     });
 
@@ -227,15 +259,30 @@
       if (!e.target.closest('.search-wrap')) hideAutocomplete();
     });
 
+    function updateActiveItem(items) {
+      items.forEach((item, i) => item.classList.toggle('active', i === autocompleteActiveIndex));
+    }
+
+    function setAutocompleteLoading(loading) {
+      searchBtn.innerHTML = loading
+        ? '<div class="spinner" style="width:18px;height:18px;border-width:2px;pointer-events:none;"></div>'
+        : searchBtnIcon;
+    }
+
     async function fetchSuggestions(q) {
       try {
         const resp = await fetch(`/api/autocomplete?q=${encodeURIComponent(q)}`);
         const { suggestions } = await resp.json();
+        setAutocompleteLoading(false);
         renderAutocomplete(suggestions || []);
-      } catch { hideAutocomplete(); }
+      } catch {
+        setAutocompleteLoading(false);
+        hideAutocomplete();
+      }
     }
 
     function renderAutocomplete(items) {
+      autocompleteActiveIndex = -1; // reset on new results
       if (!items.length) { hideAutocomplete(); return; }
       autocompleteEl.innerHTML = '';
       items.slice(0, 6).forEach(item => {
@@ -246,6 +293,7 @@
           addressInput.value = item.description;
           selectedAddress = item.description;
           hideAutocomplete();
+          addressInput.blur(); // dismiss keyboard on mobile
           submitSearch();
         });
         autocompleteEl.appendChild(div);
@@ -253,7 +301,10 @@
       autocompleteEl.classList.add('visible');
     }
 
-    function hideAutocomplete() { autocompleteEl.classList.remove('visible'); }
+    function hideAutocomplete() {
+      autocompleteEl.classList.remove('visible');
+      autocompleteActiveIndex = -1;
+    }
 
     // ---- Search ----
     document.getElementById('search-btn').addEventListener('click', submitSearch);

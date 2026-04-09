@@ -150,7 +150,7 @@ async function verifyPayment(email, address, sessionId) {
 
 async function fetchZoneIQ(address) {
   try {
-    const url = `${process.env.ZONEIQ_URL || 'https://zoneiq-sigma.vercel.app'}/api/zone-lookup?address=${encodeURIComponent(address)}`;
+    const url = `${process.env.ZONEIQ_URL || 'https://zoneiq-sigma.vercel.app'}/api/lookup?address=${encodeURIComponent(address)}`;
     const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (!resp.ok) throw new Error(`ZoneIQ ${resp.status}`);
     return await resp.json();
