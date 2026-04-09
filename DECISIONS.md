@@ -2,6 +2,42 @@
 
 ---
 
+## Sprint 4 — Supabase email gate, ZoneIQ validation, bushfire overlay, env cleanup
+
+### Supabase Wiring Pattern
+
+- **Pattern:** Raw REST API fetch (no `@supabase/supabase-js` dependency).
+- **Table:** `scout_reports` — exists at project `dqzqqfcepsqhaxovneen.supabase.co`. Note: this is the ClearOffer project. The Supabase MCP is connected to the ZoneIQ project — DDL for `scout_reports` must be run manually.
+- **Missing columns (must be added manually):** `followup_sent boolean default false`, `converted_to_paid boolean default false`. SQL is in `scripts/create-scout-reports.sql`.
+- **Upsert strategy:** `Prefer: resolution=merge-duplicates` on `(email, address)` unique constraint.
+
+### One-Free-Report-Per-Email
+
+- **Decision:** Before upsert, check if email exists anywhere in `scout_reports` (any address). If yes, return `{ paywall: true, message: '...' }` — no free report delivered, no Supabase write, no email sent.
+- **Scope:** Global — one free report per email, not per address. This is the strictest interpretation of the brief.
+- **Frontend:** Scout Report HTML currently shows a generic error for non-`data.property` responses. Sprint 5 should add a specific paywall UI state.
+- **Failure handling:** If the Supabase check fails (network error, key issue), the error is logged and the submission proceeds as a new user — generous failure mode.
+
+### ZoneIQ Response Shape Validation
+
+- **Where:** `submit-email.js` `fetchZoneIQ()` function. `property-lookup.js` handles Nominatim autocomplete only (not ZoneIQ).
+- **Validated fields:** `success === true`, `overlays.flood`, `overlays.character`, `overlays.bushfire`, `overlays.schools`.
+- **On failure:** Log warning including actual response shape. Apply safe defaults for any missing field: `hasFloodOverlay: false`, `hasCharacterOverlay: false`, `hasBushfireOverlay: false`, `schools: []`.
+- **ZONEIQ_URL:** Now read from `process.env.ZONEIQ_URL` with fallback to `https://zoneiq-sigma.vercel.app`. Added to Vercel Production and Development env vars.
+
+### Bushfire Overlay Display
+
+- **Source:** `d.bushfire.hasBushfireOverlay` from ZoneIQ response.
+- **Location:** Added to the Flood & Risk Overlay section (Section 04) as a second row within the content card, separated by a rule. Also added as a dynamic badge in the sidebar Risk Summary (replacing hardcoded "Low").
+- **Visual pattern:** Identical to flood overlay — dot + rating + description. Green dot + "No bushfire overlay" when false; amber dot + "Bushfire overlay present" when true.
+
+### Env Var Changes (Sprint 4)
+
+- `ZONEIQ_URL` added to Vercel Production and Development.
+- `.env.example` updated: `BASE_URL` and `ALLOWED_ORIGIN` now point to `clearoffer.com.au`. `ZONEIQ_URL` added. `GOOGLE_GEOCODING_API_KEY` placeholder added. `DOMAIN_API_KEY`, `DOMAIN_CLIENT_ID`, `DOMAIN_CLIENT_SECRET` moved to pending section with VG restriction note.
+
+---
+
 ## Sprint 3 — Rebrand + Polish
 
 ### Files renamed BuyerSide → ClearOffer

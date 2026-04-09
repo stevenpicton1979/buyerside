@@ -1134,6 +1134,16 @@
           Enter your email above to unlock flood overlay data for this property.
         </div>
         <div id="flood-source" style="font-size:11px; color:var(--text-dim); margin-top:8px;"></div>
+
+        <div style="margin-top:14px; padding-top:14px; border-top: 1px solid var(--rule);">
+          <div class="flood-indicator">
+            <div class="flood-dot green" id="bushfire-dot"></div>
+            <div class="flood-rating" id="bushfire-rating" style="font-size:15px;">Bushfire overlay loading…</div>
+          </div>
+          <div class="flood-desc" id="bushfire-desc" style="font-size:13px; color:var(--text-secondary); margin-top:4px;">
+            Bushfire overlay data from Queensland state mapping.
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1290,7 +1300,7 @@
       </div>
       <div class="stat-row">
         <span class="stat-label" style="font-size:12.5px;">Bushfire risk</span>
-        <span class="data-cell-badge badge-ok">Low</span>
+        <span class="data-cell-badge badge-ok" id="risk-bushfire">Loading…</span>
       </div>
       <div class="stat-row">
         <span class="stat-label" style="font-size:12.5px;">Heritage overlay</span>
@@ -1501,6 +1511,9 @@
     // Flood
     renderFlood(f);
 
+    // Bushfire
+    renderBushfire(d.bushfire || {});
+
     // Zoning
     renderZoning(z, c);
 
@@ -1563,6 +1576,25 @@
     }
 
     if (source) source.textContent = 'Source: Brisbane City Plan 2014';
+  }
+
+  function renderBushfire(b) {
+    const dot = document.getElementById('bushfire-dot');
+    const rating = document.getElementById('bushfire-rating');
+    const desc = document.getElementById('bushfire-desc');
+    const badge = document.getElementById('risk-bushfire');
+
+    if (b && b.hasBushfireOverlay) {
+      if (dot) dot.className = 'flood-dot amber';
+      if (rating) rating.textContent = 'Bushfire overlay present';
+      if (desc) desc.textContent = 'This property is within a bushfire overlay under Queensland state mapping. Check with council before purchasing — may affect insurance and building requirements.';
+      if (badge) { badge.textContent = 'Present'; badge.className = 'data-cell-badge badge-warn'; }
+    } else {
+      if (dot) dot.className = 'flood-dot green';
+      if (rating) rating.textContent = '✓ No bushfire overlay identified';
+      if (desc) desc.textContent = 'No bushfire overlay has been identified for this property under Queensland state mapping.';
+      if (badge) { badge.textContent = 'None'; badge.className = 'data-cell-badge badge-ok'; }
+    }
   }
 
   function renderZoning(z, c) {

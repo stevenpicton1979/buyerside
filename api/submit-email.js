@@ -9,12 +9,42 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'Email and address required' })
   }
 
-  // Store email in Supabase via REST API
-  try {
-    const supabaseUrl = process.env.SUPABASE_URL
-    const supabaseKey = process.env.SUPABASE_SERVICE_KEY
-    if (supabaseUrl && supabaseKey) {
-      await fetch(`${supabaseUrl}/rest/v1/scout_reports`, {
+  const supabaseUrl = process.env.SUPABASE_URL
+  const supabaseKey = process.env.SUPABASE_SERVICE_KEY
+
+  // One free report per email globally — check before proceeding
+  if (supabaseUrl && supabaseKey) {
+    try {
+      const checkRes = await fetch(
+        `${supabaseUrl}/rest/v1/scout_reports?email=eq.${encodeURIComponent(email)}&limit=1`,
+        {
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`
+          }
+        }
+      )
+      if (checkRes.ok) {
+        const existing = await checkRes.json()
+        if (existing && existing.length > 0) {
+          // This email has already claimed a free report — return paywall response
+          return res.json({
+            paywall: true,
+            message: 'You\'ve already received a free Scout Report. Upgrade to Buyer\'s Brief for full analysis.',
+            address
+          })
+        }
+      }
+    } catch (err) {
+      console.error('Supabase email check error:', err)
+      // Don't block submission if check fails
+    }
+  }
+
+  // New email — upsert into Supabase
+  if (supabaseUrl && supabaseKey) {
+    try {
+      const upsertRes = await fetch(`${supabaseUrl}/rest/v1/scout_reports`, {
         method: 'POST',
         headers: {
           'apikey': supabaseKey,
@@ -27,13 +57,19 @@ module.exports = async (req, res) => {
           address,
           lat: lat || null,
           lng: lng || null,
+          followup_sent: false,
+          converted_to_paid: false,
           created_at: new Date().toISOString()
         })
       })
+      if (!upsertRes.ok) {
+        const errBody = await upsertRes.text()
+        console.error('Supabase upsert error:', upsertRes.status, errBody)
+      }
+    } catch (err) {
+      console.error('Supabase upsert error:', err)
+      // Don't block the response if storage fails
     }
-  } catch (err) {
-    console.error('Supabase error:', err)
-    // Don't fail the request if storage fails
   }
 
   // Send Scout Report confirmation email via Resend
@@ -72,13 +108,13 @@ module.exports = async (req, res) => {
   }
 
   // Fetch data from all sources in parallel
-  const [listingData, zoniqData] = await Promise.allSettled([
+  const [listingData, zoneiqData] = await Promise.allSettled([
     fetchDomainListing(address),
     fetchZoneIQ(address)
   ])
 
   const listing = listingData.status === 'fulfilled' ? listingData.value : null
-  const zoneiq = zoniqData.status === 'fulfilled' ? zoniqData.value : null
+  const zoneiq = zoneiqData.status === 'fulfilled' ? zoneiqData.value : null
 
   res.json({
     property: {
@@ -107,21 +143,19 @@ module.exports = async (req, res) => {
     } : null,
     flood: zoneiq?.overlays?.flood || { hasFloodOverlay: false, riskLevel: 'none' },
     character: zoneiq?.overlays?.character || { hasCharacterOverlay: false },
+    bushfire: zoneiq?.overlays?.bushfire || { hasBushfireOverlay: false },
     schools: zoneiq?.overlays?.schools || [],
-    bushfire: zoneiq?.overlays?.bushfire || null,
     heritage: zoneiq?.overlays?.heritage || null,
     noise: zoneiq?.overlays?.noise || null,
-    comparables: [],      // TODO: wire PropTechData when credentials arrive
-    priceEstimate: null,  // TODO: wire Domain Price Estimation when approved
-    suburbStats: null     // TODO: wire PropTechData or Domain Properties & Locations
+    comparables: [],
+    priceEstimate: null,
+    suburbStats: null
   })
 }
 
 async function fetchDomainListing(address) {
   try {
     const token = await getDomainToken()
-
-    // Search for the listing by address
     const suburb = extractSuburb(address)
     const response = await fetch(
       'https://api.domain.com.au/v1/listings/residential/_search',
@@ -138,18 +172,13 @@ async function fetchDomainListing(address) {
         })
       }
     )
-
     if (!response.ok) {
       console.error('Domain listings search failed:', response.status)
       return null
     }
-
     const results = await response.json()
-
-    // Find the best match for the address
     const match = findBestMatch(results, address)
     if (!match) return null
-
     const l = match.listing
     return {
       id: l.id,
@@ -171,14 +200,36 @@ async function fetchDomainListing(address) {
 
 async function fetchZoneIQ(address) {
   try {
+    const zoneiqUrl = process.env.ZONEIQ_URL || 'https://zoneiq-sigma.vercel.app'
     const encoded = encodeURIComponent(address)
     const response = await fetch(
-      `https://zoneiq-sigma.vercel.app/api/lookup?address=${encoded}`,
+      `${zoneiqUrl}/api/lookup?address=${encoded}`,
       { signal: AbortSignal.timeout(8000) }
     )
     if (!response.ok) return null
     const data = await response.json()
-    return data.success ? data : null
+
+    if (!data.success) {
+      console.warn('ZoneIQ returned success:false for', address,
+        '— actual response keys:', JSON.stringify(Object.keys(data)))
+      return null
+    }
+
+    // Validate expected shape: overlays.flood, character, bushfire, schools must all be present
+    const overlays = data.overlays || {}
+    const missingFields = ['flood', 'character', 'bushfire', 'schools'].filter(k => !(k in overlays))
+    if (missingFields.length > 0) {
+      console.warn('ZoneIQ response missing overlay fields', missingFields,
+        'for', address, '— received keys:', JSON.stringify(Object.keys(overlays)),
+        '— applying safe defaults')
+      if (!overlays.flood) overlays.flood = { hasFloodOverlay: false, riskLevel: 'none' }
+      if (!overlays.character) overlays.character = { hasCharacterOverlay: false }
+      if (!overlays.bushfire) overlays.bushfire = { hasBushfireOverlay: false }
+      if (!overlays.schools) overlays.schools = []
+      data.overlays = overlays
+    }
+
+    return data
   } catch (err) {
     console.error('ZoneIQ error:', err)
     return null
@@ -186,19 +237,16 @@ async function fetchZoneIQ(address) {
 }
 
 function extractSuburb(address) {
-  // Extract suburb from address string
-  // e.g. "6 Glenheaton Court, Carindale QLD 4152" → "Carindale"
   const match = address.match(/,\s*([^,]+?)\s+(?:QLD|NSW|VIC|WA|SA|TAS|ACT|NT)/)
   return match ? match[1].trim() : 'Brisbane'
 }
 
 function findBestMatch(results, address) {
   if (!results || !results.length) return null
-  // Simple match — find listing whose address contains key parts of our address
   const addressLower = address.toLowerCase()
   return results.find(r => {
     const listingAddress = (r.listing?.propertyDetails?.displayableAddress || '').toLowerCase()
     const streetParts = addressLower.split(',')[0].split(' ')
     return streetParts.some(part => part.length > 3 && listingAddress.includes(part))
-  }) || results[0] // fallback to first result
+  }) || results[0]
 }
