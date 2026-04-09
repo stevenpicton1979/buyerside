@@ -101,11 +101,16 @@ module.exports = async (req, res) => {
     },
     zoning: zoneiq ? {
       zoneName: zoneiq.zone?.name || null,
-      zoneCode: zoneiq.zone?.code || null
+      zoneCode: zoneiq.zone?.code || null,
+      partial: zoneiq.meta?.partial || false,
+      disclaimer: zoneiq.meta?.disclaimer || null
     } : null,
     flood: zoneiq?.overlays?.flood || { hasFloodOverlay: false, riskLevel: 'none' },
     character: zoneiq?.overlays?.character || { hasCharacterOverlay: false },
     schools: zoneiq?.overlays?.schools || [],
+    bushfire: zoneiq?.overlays?.bushfire || null,
+    heritage: zoneiq?.overlays?.heritage || null,
+    noise: zoneiq?.overlays?.noise || null,
     comparables: [],      // TODO: wire PropTechData when credentials arrive
     priceEstimate: null,  // TODO: wire Domain Price Estimation when approved
     suburbStats: null     // TODO: wire PropTechData or Domain Properties & Locations
