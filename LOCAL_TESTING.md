@@ -5,36 +5,46 @@
 | Tool | Status | Notes |
 |---|---|---|
 | Node.js | Required | `node --version` to confirm |
-| Vercel CLI | ✓ Installed (v50+) | Used to run the dev server |
-| Doppler CLI | ✓ Installed (v3.75) | Not yet authenticated for this project — local dev uses `.env.local` instead |
-| Stripe CLI | ✗ Not installed | Only needed to test webhook events locally (Stripe → mark-converted). Not required for the main flow. |
+| Vercel CLI | ✓ Installed (v50+) | Needed for API routes locally (run directly, not via npm) |
+| Doppler CLI | ✓ Installed (v3.75) | Not yet authenticated for this project — local dev uses `.env.local` |
+| Stripe CLI | ✗ Not installed | Only needed to test webhook events locally. Not required for the main flow. |
 
 ---
 
 ## Starting the local server
+
+### Static frontend only (use this for UI testing)
 
 ```bash
 cd C:/dev/buyerside
 npm run dev
 ```
 
-This runs `vercel dev` — the Vercel local development server. It serves `public/` as static files and handles `api/` as serverless functions, exactly mirroring production.
+Serves `public/` via `npx serve` on **http://localhost:3000**. No API routes — address autocomplete (Nominatim, external), email gate, and Stripe checkout will not work.
 
-**URL:** `http://localhost:3000`
+**Note:** The live site at clearoffer.com.au shows `coming-soon.html` via Vercel routing. Locally, `/` serves `index.html` — correct for testing.
 
-**Note:** The live site at clearoffer.com.au shows `coming-soon.html` via Vercel routing. Locally, `http://localhost:3000` serves `index.html` (the full app) — this is correct for testing.
+### Full stack including API routes
 
-### First run
-`vercel dev` will prompt to link the project if it hasn't been done in this session. Answer:
-- Set up and deploy? → **N** (already deployed)
+The `npm run dev` → `vercel dev` combination caused infinite recursion (`vercel dev` calls the `dev` script, which calls `vercel dev`). To run API routes locally, call `vercel dev` **directly from the terminal**, not via npm:
+
+```bash
+cd C:/dev/buyerside
+vercel dev --listen 3000
+```
+
+First run will prompt to link the project:
+- Set up and deploy? → **N**
 - Link to existing project? → **Y**, select `stevenpicton1979s-projects/buyerside`
 
-### Env vars
-All secrets are in `.env.local` (pulled from Vercel Development env). `vercel dev` reads this file automatically — no Doppler needed for local dev.
+This serves static files AND handles all `api/` routes on **http://localhost:3000**, reading env vars from `.env.local` automatically.
 
-When Doppler is set up for this project (run `doppler login` then `doppler setup`), the preferred command becomes:
+### Env vars
+All secrets are in `.env.local`. Both `npm run dev` (serve) and `vercel dev` read this file. No Doppler setup needed for local dev.
+
+When Doppler is eventually set up for this project (`doppler login` → `doppler setup`), the preferred full-stack command becomes:
 ```bash
-doppler run -- npm run dev
+doppler run -- vercel dev --listen 3000
 ```
 
 ---
@@ -63,6 +73,8 @@ All required vars are present:
 ---
 
 ## Full flow test checklist
+
+> Steps 1–2 work with `npm run dev` (static only). Steps 3–8 require `vercel dev --listen 3000` (API routes).
 
 ### 1. Landing page
 - Browse to `http://localhost:3000`
