@@ -1,149 +1,246 @@
 # ClearOffer — Backlog
-*Last updated: 9 April 2026. Sprints 4 & 5 complete.*
+*Repo: stevenpicton1979/buyerside (main branch)*
+*Read STATE.md in portfoliostate repo before starting any sprint.*
+*Run `vercel dev --listen 3001` for local dev. Never use `npm run dev`.*
 
 ---
 
-## How this works
+## How to run a sprint
 
-Claude Code reads this file at the start of every session. Tasks marked [ ] are incomplete. Tasks marked [x] are done. Work top to bottom within each sprint. Do not start a sprint if its blocker condition is listed and unmet. Always read CLAUDE.md and DECISIONS.md before starting any sprint.
+```
+claude --dangerously-skip-permissions
+```
 
----
-
-## External gates — not sprints, just blockers
-
-| Gate | Status | Steve action needed |
-|---|---|---|
-| Domain API approval | Unknown — not checked since before Easter | Log into developer.domain.com.au → check approval status for Address Suggestions, Agents & Listings, Price Estimation, Properties & Locations. Update this table when confirmed. |
-| PropTechData credentials | Email sent, no response | Follow up with a call. Key questions: (1) VG licence restriction on paid consumer reports? (2) Listed price alongside sold price? (3) Per-call pricing for AVM + suburb stats. |
-| Supabase column migration | PENDING MANUAL ACTION | Run scripts/create-scout-reports.sql in Supabase SQL editor for project dqzqqfcepsqhaxovneen. Adds followup_sent and converted_to_paid columns. Must be done before Sprint 7. |
-| Launch decision | Pending | Decide: launch with smart stubs before Domain/PropTechData, or wait for real data? |
-| 24hr follow-up trigger | Pending | Decide: Vercel cron (automatic hourly) or manual curl trigger for v1? Fill in Sprint 7 before triggering. |
+Read this file, find the next sprint with unchecked tasks, execute it completely.
+Mark each `[ ]` as `[x]` when done.
+Log to `OVERNIGHT_LOG.md` with timestamps.
+Do not stop mid-sprint.
+Do not deploy to Vercel — local only until Steve says otherwise.
 
 ---
 
-## Sprint 6 — Buyer's Brief: prompt rewrite and paid report quality
+## Architectural constraints — read before every sprint
 
-**Blocker:** Sprints 4 & 5 complete ✓. Steve must read the current Buyer's Brief output on a real test purchase and provide notes before Claude Code starts this sprint.
-
-**Steve notes on current Buyer's Brief quality:**
-*(paste here before running this sprint)*
-
-- [ ] Before starting any other task in this sprint: fetch and read the ZoneIQ OpenAPI spec at https://zoneiq-sigma.vercel.app/api/openapi — this is the authoritative reference for all overlay field names, shapes per state (QLD/NSW/VIC), and partial response handling. Use it to ensure the Buyer's Brief prompt context and Scout Report overlay display are referencing correct field names.
-- [ ] Read the current Claude system prompt in `generate-brief.js` (search repo if location unclear). Audit every section against the paid report spec. Write gap analysis to DECISIONS.md: missing sections, thin sections, anything generic rather than Brisbane-specific.
-- [ ] Rewrite the system prompt. Required sections: (1) Offer Recommendation — specific opening dollar figure, target settlement range, walk-away price, reasoning from comparable evidence, exact words to say to the agent. (2) Negotiating Leverage — DOM vs suburb average, comparable sold prices vs asking price, active supply signals. No agent vendor discount data (deferred). (3) Flood Risk in Plain English — what the FPA overlay code means (R1–R5 for QLD), estimated insurance premium impact, lender appetite and LVR caps on flood-mapped properties, resale pool impact, post-2022 Brisbane flood context, what to do before exchanging contracts. (4) 5–10 Year Suburb Outlook — Cross River Rail, Olympics 2032 corridor, rezoning and density risk, school catchment ICSEA score, 10-year CAGR vs Brisbane average, honest structural headwinds. (5) The Smart Case for This Property — why it makes sense at the right price, vs 2–3 named comparable alternatives at the same price point, who this property is and isn't right for. (6) What the Agent Won't Tell You — 4–6 specific uncomfortable truths, written confidently, no softening.
-- [ ] Surface richer ZoneIQ data in the Buyer's Brief prompt context. ZoneIQ now returns: flood FPA code (R1–R5, river + overland flow), bushfire hazard (4 intensity classes), heritage (is_heritage, heritage_type, heritage_name), aircraft noise ANEF contour and airport name, school catchments (primary + secondary, catchment name). Pass all available overlay fields as structured context into the Claude prompt so the AI can reference them specifically — e.g. "This property is in R2A flood overlay" not just "flood risk present."
-- [ ] Add heritage overlay to Scout Report display — ZoneIQ now returns heritage data. Add a heritage flag row to the overlay section (same visual pattern as flood and bushfire). Show heritage type and name if is_heritage is true.
-- [ ] Add aircraft noise overlay to Scout Report display — ZoneIQ returns ANEF contour and airport name. Add a noise row to the overlay section. Only show if an ANEF contour is present (most properties won't have one).
-- [ ] Add price anchoring above the Buyer's Brief paywall CTA: "A buyer's agent charges $8,000–$15,000. Your Buyer's Brief is $149." Style to match existing design.
-- [ ] Add social proof counter to landing page hero and Scout Report paid CTA: "X Brisbane buyers got a Buyer's Brief this week." Hardcode at a plausible starting number. Add HTML comment `<!-- UPDATE WEEKLY -->` at each instance.
-- [ ] Verify Claude response streams to screen in real time on the Buyer's Brief page. If broken, fix. Document result in DECISIONS.md.
-- [ ] Update DECISIONS.md: document prompt rewrite rationale, new ZoneIQ fields being passed as context, heritage and noise overlay additions.
-- [ ] Commit: `Sprint 6: Buyer's Brief prompt rewrite, richer ZoneIQ context, heritage + noise overlays, price anchoring`
+1. **PropTechData is NEVER called on the free report.** Paid report only. See `api/buyers-brief.js`.
+2. **ZoneIQ is the primary overlay source.** Always `zoneiq-sigma.vercel.app`. See `api/zone-lookup.js`.
+3. **Free report cost target: under $0.15 per lookup.** No external API calls except ZoneIQ + Claude Haiku.
+4. **Always check ZoneIQ OpenAPI spec before wiring new overlay fields:** `https://zoneiq-sigma.vercel.app/api/openapi`
+5. **Supabase: raw REST fetch only**, no @supabase/supabase-js. Pattern in `api/config.js`.
+6. **CommonJS throughout** — `require`/`module.exports`. No ESM.
+7. **COMING_SOON env var** controls root route — `true` serves coming-soon.html, `false` serves index.html.
 
 ---
 
-## Sprint 7 — Email sequences: confirmation + 24hr follow-up
+## Sprint 1 — Smoke test pass + local dev verification
+*Status: READY — do this first after copying files into repo*
 
-**Blocker:** Sprint 4 complete ✓. Supabase column migration must be run first (see external gates). Steve must decide cron vs manual before triggering.
-
-**Trigger approach chosen by Steve:** *(cron / manual — fill in before running)*
-
-- [ ] Verify Scout Report confirmation email is actually sending via Resend on email gate submission. Check Resend dashboard for sent events against a test submission. Fix if broken.
-- [ ] Create `api/send-followup.js` — accepts email and address, sends the 24hr follow-up via Resend. Subject: `Still thinking about [address]? Here's what the Buyer's Brief would tell you.` Body: 3–4 sentences teasing flood risk in plain English, exact offer recommendation, what the agent won't tell you. CTA button to Scout Report for that address. From: hello@clearoffer.com.au. Guard with RESEND_API_KEY check.
-- [ ] Create `api/mark-converted.js` — sets `converted_to_paid: true` in scout_reports for matching email + address. Wire into `stripe-webhook.js` on `checkout.session.completed`.
-- [ ] Create `api/cron-followup.js` — queries Supabase for `followup_sent = false AND converted_to_paid = false AND created_at < now() - interval '24 hours'`. Sends follow-up via send-followup.js logic, sets `followup_sent: true`. Max 50 rows per run.
-- [ ] If CRON: add hourly cron to `vercel.json`, add `CRON_SECRET` env var via `vercel env add`, guard the endpoint with that secret.
-- [ ] If MANUAL: do not add cron. Write curl trigger command to DECISIONS.md.
-- [ ] Update DECISIONS.md with email sequence architecture and trigger approach.
-- [ ] Commit: `Sprint 7: 24hr follow-up email, conversion tracking`
-
----
-
-## Sprint 8 — Stripe live mode + pre-launch checklist
-
-**Blocker:** Sprints 4–7 complete. Steve must add live Stripe keys to Vercel Production env before triggering (Claude Code cannot retrieve them from Stripe Dashboard).
-
-**Steve action before this sprint:** In Stripe Dashboard switch ClearOffer to live mode. Add live `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` to Vercel Production env only. Keep test keys scoped to Preview.
-
-- [ ] Confirm live Stripe keys are present in Vercel Production env via `vercel env ls`. If test keys are in Production, warn loudly in log but do not overwrite — flag to Steve.
-- [ ] Add Stripe key mode guard in `create-checkout.js` — log live vs test on startup. `console.warn` if `NODE_ENV === 'production'` and key starts with `sk_test_`.
-- [ ] Confirm `BASE_URL` in Vercel Production env is `https://clearoffer.com.au`. Update via `vercel env add` if still on old subdomain.
-- [ ] Add "Powered by ZoneIQ" attribution to Scout Report footer — small grey text, link to zoneiq.com.au.
-- [ ] Add legal disclaimer to Scout Report and Buyer's Brief footers: "This report is market research and analysis, not a formal property valuation. It is not suitable for lending, legal, or insurance purposes. ClearOffer is not a registered property valuer. Always obtain independent legal and financial advice before purchasing property."
-- [ ] Run pre-launch checklist and write results to `LAUNCH_CHECKLIST.md`. Record pass/fail for each: Scout Report loads for a real Brisbane address; all ZoneIQ overlays display (flood, bushfire, heritage, noise where present); email gate captures to Supabase; one-free-report-per-email enforcement works on second attempt; confirmation email sends; Stripe checkout creates session; Buyer's Brief generates with streaming; Stripe webhook fires and sets converted_to_paid; follow-up does not send after conversion; legal disclaimer on both pages; ZoneIQ attribution present; mobile layout at 375px; no console errors on any page.
-- [ ] Commit: `Sprint 8: Stripe live mode guard, launch checklist, legal disclaimer, ZoneIQ attribution`
+- [ ] Run `npm install` to install stripe dependency
+- [ ] Run `vercel env pull` to pull .env.local from Vercel
+- [ ] Start `vercel dev --listen 3001` and confirm server starts without errors
+- [ ] Confirm `GET http://localhost:3001/` returns 200 (coming-soon or index depending on COMING_SOON env var)
+- [ ] Confirm `GET http://localhost:3001/report.html` returns 200
+- [ ] Confirm `GET http://localhost:3001/api/suburb-stats?suburb=Chelmer` returns JSON with median > 0
+- [ ] Confirm `GET http://localhost:3001/api/zone-lookup?address=14+Riverview+Tce+Chelmer+QLD+4068` returns JSON with overlays object
+- [ ] Confirm `POST http://localhost:3001/api/verdict` with `{"address":"14 Riverview Tce, Chelmer QLD 4068","listingPrice":1350000,"daysOnMarket":41}` returns a verdict string
+- [ ] Run `node scripts/smoke-test.js` — all tests must pass before marking sprint done
+- [ ] Fix any failures found. Log each fix in OVERNIGHT_LOG.md.
 
 ---
 
-## Sprint 9 — Domain API: active listing data
+## Sprint 2 — Address autocomplete UX polish
+*Status: READY — unblocked*
+*Depends on: Sprint 1 complete, GOOGLE_GEOCODING_API_KEY set in .env.local*
 
-**Blocker:** Steve confirms Domain API approval in external gates table. Sprint 4 complete ✓.
-
-**Context:** Active listing data only — price, beds/baths, DOM, agent name, photos. Sold data and AVM from Domain Insights/Pricefinder permanently off table (VG licence restriction on that product, not the developer API).
-
-- [ ] Test Domain OAuth via `lib/domain-auth.js` — confirm valid token returned. Debug using DECISIONS.md Sprint 2 notes if failing. Do not proceed until OAuth confirmed working.
-- [ ] Replace Nominatim autocomplete with Domain Address Suggestions. QLD only, max 5 results. Frontend UX unchanged.
-- [ ] Wire Domain Properties & Locations — listing price, beds, bathrooms, car spaces, land size, DOM, agent name, agency, photos URL. Replace stubs with real data. Keep stubs as fallback.
-- [ ] Wire Domain Price Estimation into Scout Report — replaces price estimate stub with real AVM range.
-- [ ] Wire Domain Agents & Listings — agent name and agency. Track record stats remain deferred.
-- [ ] Update `.env.example`: move `DOMAIN_CLIENT_ID` and `DOMAIN_CLIENT_SECRET` to main section.
-- [ ] Update DECISIONS.md.
-- [ ] Commit: `Sprint 9: Domain API live — autocomplete, listing data, price estimate`
+- [ ] Verify `GET /api/autocomplete?q=14+Riverview` returns suggestions from Google Places
+- [ ] If GOOGLE_GEOCODING_API_KEY missing or quota exceeded: add a graceful typed-entry fallback — user can type full address and press enter without autocomplete
+- [ ] Add keyboard navigation to autocomplete dropdown (arrow keys + enter selects)
+- [ ] Add loading indicator in search box while autocomplete is fetching (small spinner replacing search icon)
+- [ ] Test on mobile viewport (375px width) — autocomplete list must not overflow screen
+- [ ] On mobile, dismiss keyboard when suggestion is selected (`addressInput.blur()`)
+- [ ] Add `data-testid` attributes to `#address-input`, `#search-btn`, `#autocomplete-list` for future Playwright tests
 
 ---
 
-## Sprint 10 — PropTechData: AVM, comparables, suburb stats
+## Sprint 3 — Scout Report overlay display QA
+*Status: READY — unblocked*
+*Depends on: Sprint 1 complete*
 
-**Blocker:** Steve confirms PropTechData in external gates table — no VG restriction, pricing acceptable, credentials received.
+Test the full Scout Report render against these Brisbane addresses. For each, check overlays display correctly (no crashes, correct pill colours, plain English text):
 
-- [ ] Add `PROPTECH_DATA_API_KEY` to Vercel Production env via `vercel env add`. Update `.env.example`.
-- [ ] Create `lib/proptech-data.js` — functions: `getAVM(address)`, `getComparableSales(suburb, bedrooms, limit=5)`, `getSuburbStats(suburb)`. All return null on failure, never crash.
-- [ ] Wire AVM into Scout Report — replaces price estimate stub.
-- [ ] Wire comparable sales — 5 recent sales, address/sold price/sold date/beds/baths. No listed price, no vendor discount percentage (per brief decision).
-- [ ] Wire suburb stats — median, DOM, clearance rate, 12-month growth. PropTechData overrides Sprint 5 static lookup table. Keep table as fallback.
-- [ ] Wire PropTechData context into Buyer's Brief Claude prompt — AVM, comparables, suburb stats passed as structured context.
-- [ ] Update DECISIONS.md.
-- [ ] Commit: `Sprint 10: PropTechData live — AVM, comparables, suburb stats`
+- [ ] `14 Riverview Tce, Chelmer QLD 4068` — expect: flood (FHA code), character overlay, school catchment
+- [ ] `52 Birdwood Tce, Toowong QLD 4066` — general inner-west test
+- [ ] `7 Wynnum Rd, Norman Park QLD 4170` — riverside, expect flood overlay
+- [ ] `25 Racecourse Rd, Hamilton QLD 4007` — high-end, expect no flood
+- [ ] `18 Collingwood St, Albion QLD 4010` — industrial fringe, test partial response handling
 
----
+For each address:
+- [ ] ZoneIQ returns without timeout
+- [ ] If `meta.partial: true`, the amber warning banner shows (not a crash)
+- [ ] Flood pill is correct colour (red/amber/green based on code)
+- [ ] School ICSEA numbers render if present
+- [ ] AVM teaser range renders (suburb median ±8%)
+- [ ] Demand meter animates in
+- [ ] No JS console errors on load
 
-## Sprint 11 — Smoke tests
-
-**Blocker:** Sprint 4 complete ✓. Can run in test mode at any time.
-
-- [ ] Add Jest and supertest as dev dependencies: `npm install --save-dev jest supertest`. Add `"test": "jest"` to package.json scripts.
-- [ ] Smoke test: Scout Report API returns 200 for "14 Riverview Tce, Chelmer QLD 4068". Assert response contains `address`, `overlays`, `suburb`.
-- [ ] Smoke test: Stripe checkout API returns 200 with `sessionId` or `url` for a valid address payload.
-- [ ] Smoke test: Email gate submission returns 200 and does not throw for valid email + address.
-- [ ] Run `npm test` — confirm all pass. Fix failures before committing.
-- [ ] Commit: `Sprint 11: Smoke tests`
+Log results in OVERNIGHT_LOG.md. If ZoneIQ returns unexpected shape for any address, update `normaliseFlood`/`normaliseSchools` etc. in `api/zone-lookup.js` accordingly.
 
 ---
 
-## Deferred — not in v1
+## Sprint 4 — Email gate + Supabase integration test
+*Status: READY — unblocked*
+*Depends on: Sprint 1 complete, SUPABASE_URL + SUPABASE_SERVICE_KEY set*
 
-- Agent vendor discount data — out of v1
-- Google Geocoding for ClearOffer address search — Domain API replaces Nominatim when approved
-- Suburb lookup table quarterly update process — post-launch
-- Google Ads — after first real live paid purchase confirmed
-- r/AusPropertyChat posting — after launch
-- Sydney / Melbourne expansion — post-revenue (ZoneIQ already has the data)
-- PDF email of Buyer's Brief — v2
-- Subscription model — explicitly rejected
+- [ ] Run `scripts/create-tables.sql` in Supabase SQL editor if tables don't exist yet
+- [ ] Confirm `scout_reports` table has columns: `id, email, address, created_at, report_data, followup_sent, converted_to_paid`
+- [ ] Confirm `suburb_stats_cache` table exists
+- [ ] Test email gate: submit `test+sprint4@clearoffer-test.com` for `14 Riverview Tce, Chelmer QLD 4068`
+- [ ] Confirm row appears in Supabase `scout_reports` with `followup_sent=false, converted_to_paid=false`
+- [ ] Test one-free-per-email: submit same email again — confirm `already_used` response and redirect to upsell
+- [ ] Test Resend confirmation email: check `hello@clearoffer.com.au` inbox (or use Resend dashboard) — confirm email sent with correct address in subject
+- [ ] If Resend free tier limit hit: log warning, do not fail the report delivery
+- [ ] Test invalid email `notanemail` → confirm 400 response
+- [ ] Check redirect from index.html → report.html passes `email` param in URL correctly
 
 ---
 
-## Done
+## Sprint 5 — Stripe checkout integration test
+*Status: READY — test mode only*
+*Depends on: Sprint 4 complete, STRIPE_SECRET_KEY (test) set*
 
-- [x] Sprint 1–3: Setup, overlays, rebrand BuyerSide → ClearOffer
-- [x] Smart placeholders for missing API data
-- [x] Resend wired, hello@clearoffer.com.au verified
-- [x] clearoffer.com.au domain live and DNS configured
-- [x] Claude AI streaming Buyer's Brief (live, real API)
-- [x] Stripe payment flow ($149 AUD, test mode)
-- [x] ZoneIQ integration (flood, character, schools, bushfire) via zoneiq-sigma.vercel.app
-- [x] Domain OAuth lib created (lib/domain-auth.js)
-- [x] Nominatim address autocomplete (temporary)
-- [x] Git → GitHub → Vercel auto-deploy pipeline
-- [x] Sprint 4: Supabase email gate, one-report-per-email, ZoneIQ validation, bushfire overlay, env cleanup
-- [x] Sprint 5: Live ZoneIQ data, suburb lookup table, smart stubs throughout Scout Report
+- [ ] Confirm Stripe test mode key is `sk_test_...` — do NOT proceed if it's `sk_live_...`
+- [ ] Create a Stripe test price: `$149 AUD` one-time in Stripe dashboard, note the Price ID
+- [ ] Update `api/create-checkout.js` to use `price_data` (already done — confirm dynamic pricing works without a pre-created price ID, or switch to static price ID if preferred)
+- [ ] Test checkout: submit real email through report.html, click CTA, confirm Stripe checkout page opens
+- [ ] Use Stripe test card `4242 4242 4242 4242` to complete payment
+- [ ] Confirm redirect to `success.html` with `session_id` param
+- [ ] Confirm redirect from `success.html` to `buyers-brief.html` after 3 seconds
+- [ ] Set up Stripe webhook in Stripe dashboard: endpoint `http://localhost:3001/api/stripe-webhook` (use Stripe CLI for local: `stripe listen --forward-to localhost:3001/api/stripe-webhook`)
+- [ ] Confirm webhook fires and `converted_to_paid` is set to `true` in Supabase
+- [ ] Confirm `buyers-brief.html` payment verification passes after webhook fires
+- [ ] Test failed payment (Stripe test card `4000 0000 0000 0002`) — confirm cancel redirect back to report
+
+---
+
+## Sprint 6 — Buyer's Brief generation test
+*Status: READY*
+*Depends on: Sprint 5 complete, ANTHROPIC_API_KEY set*
+
+- [ ] Manually set `converted_to_paid=true` in Supabase for a test email+address row
+- [ ] Navigate to `buyers-brief.html?address=14+Riverview+Tce%2C+Chelmer+QLD+4068&email=YOUR_TEST_EMAIL`
+- [ ] Confirm streaming starts within 3 seconds
+- [ ] Confirm progress bar advances during streaming
+- [ ] Confirm all 7 sections render: Valuation Assessment, Comparables, Risk Flags, Market Context, Negotiation, Opening Offer, What the Agent Won't Tell You, 5-10yr Outlook
+- [ ] Confirm PropTechData stub values are clearly labelled (look for `_stub: true` in server logs)
+- [ ] Confirm switching to complete state after streaming ends (progress hits 100%, full report shows)
+- [ ] Confirm qualifier selections from report.html are passed through sessionStorage
+- [ ] Test with renovation status "original condition" + road type "main road" — confirm Claude mentions these in the valuation adjustment
+- [ ] Check brief content reads as confident and specific (not hedged), no raw markdown showing
+
+---
+
+## Sprint 7 — Follow-up email job test
+*Status: READY*
+*Depends on: Sprint 4 complete, CRON_SECRET set in .env.local*
+
+- [ ] Add `CRON_SECRET=test-secret-local` to .env.local
+- [ ] Manually insert a test row into `scout_reports` with `created_at = NOW() - INTERVAL '24 hours'`, `followup_sent=false`, `converted_to_paid=false`
+- [ ] Hit `GET http://localhost:3001/api/send-followup?secret=test-secret-local`
+- [ ] Confirm response: `{ "processed": 1, "results": [{ "status": "sent" }] }`
+- [ ] Confirm `followup_sent=true` in Supabase for that row
+- [ ] Confirm follow-up email received (check Resend dashboard)
+- [ ] Test auth: `GET /api/send-followup` without secret → confirm 401
+- [ ] Test idempotency: run job again → confirm already-sent row not re-processed (followup_sent=true filters it out)
+- [ ] Test that `__waitlist__` address rows are excluded from follow-up
+
+---
+
+## Sprint 8 — Mobile QA pass
+*Status: READY*
+*Depends on: Sprint 3 complete*
+
+Test entire flow at 375px viewport (iPhone SE) in browser devtools:
+
+- [ ] index.html: hero, search box, autocomplete fully usable
+- [ ] Stage 1 verdict displays correctly (no overflow)
+- [ ] Email gate form usable on mobile (input + button stack vertically)
+- [ ] report.html: stat row wraps gracefully (2×2 grid at narrow width)
+- [ ] Overlay pills wrap without overflow
+- [ ] Qualifier option buttons wrap to multiple rows without breaking layout
+- [ ] Locked section blur effect renders on iOS Safari (test `-webkit-backdrop-filter` fallback)
+- [ ] CTA block readable and button full-width
+- [ ] buyers-brief.html: streaming content readable, no horizontal scroll
+- [ ] `font-size: 16px` on all inputs (prevents iOS auto-zoom — check CSS)
+- [ ] Test at 768px (iPad) — layout should look good without mobile-specific fixes
+
+Fix any mobile issues found. Log in OVERNIGHT_LOG.md.
+
+---
+
+## Sprint 9 — Domain API integration (BLOCKED — pending approval)
+*Status: BLOCKED — do not start until Steve confirms Domain API is approved*
+*Trigger: Steve says "Domain API approved" in Slack or chat*
+
+When unblocked:
+- [ ] Read Domain developer API docs at developer.domain.com.au
+- [ ] Implement OAuth2 client credentials flow in `api/domain-token.js`
+- [ ] Implement `api/listing-data.js` — fetch active listing by address (price, beds, baths, DOM, agent)
+- [ ] Update `index.html` Stage 1 to call `/api/listing-data` and populate real stats
+- [ ] Update `report.html` to use real DOM vs suburb average in stat row
+- [ ] Replace Nominatim references with Domain autocomplete (if approved for that use)
+- [ ] Update verdict prompt to include real DOM + listing price
+- [ ] Degrade gracefully if Domain returns no listing (property may be off-market)
+- [ ] Smoke test with 5 live Brisbane listings
+
+---
+
+## Sprint 10 — PropTechData integration (BLOCKED — pending terms confirmation)
+*Status: BLOCKED — do not start until Steve confirms VG licence + pricing*
+*Trigger: Steve says "PropTechData confirmed" in Slack or chat*
+
+**Critical questions confirmed before starting:**
+- VG licence permits individual sold transactions in paid consumer reports? (YES/NO)
+- Pricing per call? Monthly minimum?
+- Listed price alongside sold price available?
+- AVM confidence score returned?
+
+When unblocked:
+- [ ] Read Nexu API docs at api.nexu.com.au
+- [ ] Implement `api/proptech-client.js` — auth, error handling, retry logic
+- [ ] Wire `/properties/avm` into `api/buyers-brief.js` (replace stub in `fetchPropTechData`)
+- [ ] Wire `/market-activity/sales` for comparable sales
+- [ ] Wire `/suburbs/statistics` for suburb stats (replace static lookup in `api/config.js`)
+- [ ] Wire `/suburbs/timeseries` for 10yr chart data
+- [ ] Set up monthly suburb stats cache job: `scripts/cache-suburb-stats.js` → writes to `suburb_stats_cache` table
+- [ ] Update Buyer's Brief prompt to include real AVM confidence + comparable details
+- [ ] Smoke test paid brief: confirm AVM within 15% of listing price for test addresses
+- [ ] Remove `_stub: true` flags from PropTechData stub
+
+---
+
+## Sprint 11 — Launch prep (BLOCKED — pending Steve's go signal)
+*Status: BLOCKED — do not start until Steve says ready to launch*
+
+- [ ] Set `COMING_SOON=false` in Vercel production environment variables
+- [ ] Switch Stripe to live mode: update `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` in Vercel
+- [ ] Update Stripe webhook endpoint URL to `https://clearoffer.com.au/api/stripe-webhook`
+- [ ] Set `BASE_URL=https://clearoffer.com.au` in Vercel production
+- [ ] Set `ALLOWED_ORIGIN=https://clearoffer.com.au` in Vercel production
+- [ ] Set `CRON_SECRET` to a strong random string in Vercel production
+- [ ] Wire follow-up cron: set up Vercel Cron or external service to hit `/api/send-followup?secret=CRON_SECRET` daily at 10am AEST
+- [ ] Final smoke test against production URL
+- [ ] Update `SOCIAL_PROOF` string in `public/js/config.js` to a real number <!-- UPDATE WEEKLY -->
+- [ ] Post announcement (r/Brisbane, r/AusPropertyChat or similar)
+- [ ] Update `STATE.md` in portfoliostate repo: mark ClearOffer status as LAUNCHED
+
+---
+
+## Ideas / future sprints (not scheduled)
+
+- PDF generation for Buyer's Brief (v2) — Puppeteer or html-pdf-node
+- Stripe webhook: trigger follow-up email with PDF attachment on `checkout.session.completed`
+- Sydney expansion — ZoneIQ now has NSW coverage, same flow applies
+- Melbourne expansion — ZoneIQ has VIC coverage
+- Agent lookup — Domain API agent profile (not vendor discount, just name + listing count)
+- Avalon Airport ANEF — ZoneIQ Sprint 28 found queryable layers, add to ZoneIQ then expose here
+- Suburb stats chart — 10yr timeseries from PropTechData rendered as SVG sparkline
+- Coming soon waitlist → Resend broadcast email on launch day

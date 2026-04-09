@@ -1,60 +1,67 @@
-import dotenv from 'dotenv';
-import { resolve } from 'path';
-dotenv.config({ path: resolve(process.cwd(), '.env.local') });
+'use strict';
+// ============================================================
+// ClearOffer — Stripe checkout session creation
+// ============================================================
+// Creates a $149 AUD Stripe checkout session.
+// On success, Stripe redirects to /success.html
+// Webhook (stripe-webhook.js) marks converted_to_paid in DB.
+// ============================================================
 
-export const config = { runtime: 'nodejs' };
+const { handleCors, PRODUCT, PRICING } = require('./config');
+const Stripe = require('stripe');
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+// Resolve BASE_URL explicitly here — never fall back to VERCEL_URL
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3001';
+
+module.exports = async function handler(req, res) {
+  if (handleCors(req, res)) return;
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  let body;
+  try {
+    body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+  } catch {
+    return res.status(400).json({ error: 'Invalid JSON' });
   }
 
-  const { email, propertyId, address } = req.body;
+  const email = (body?.email || '').trim().toLowerCase();
+  const address = (body?.address || '').trim();
 
-  if (!email || !propertyId || !address) {
-    return res.status(400).json({ error: 'email, propertyId, and address required' });
+  if (!email || !address) {
+    return res.status(400).json({ error: 'email and address are required' });
   }
 
-  const stripeKey = process.env.STRIPE_SECRET_KEY;
-  if (!stripeKey) {
-    return res.status(500).json({ error: 'Stripe not configured' });
-  }
-
-  const params = new URLSearchParams({
-    'mode': 'payment',
-    'payment_method_types[]': 'card',
-    'customer_email': email,
-    'line_items[0][price_data][currency]': 'aud',
-    'line_items[0][price_data][unit_amount]': '14900',
-    'line_items[0][price_data][product_data][name]': "ClearOffer Buyer's Brief",
-    'line_items[0][price_data][product_data][description]': `Independent property analysis: ${address}`,
-    'line_items[0][quantity]': '1',
-    'success_url': `${process.env.BASE_URL}/buyers-brief.html?session_id={CHECKOUT_SESSION_ID}&property=${encodeURIComponent(propertyId)}`,
-    'cancel_url': `${process.env.BASE_URL}/scout-report.html?property=${encodeURIComponent(propertyId)}`,
-    'metadata[property_id]': propertyId,
-    'metadata[address]': address,
-    'metadata[email]': email,
-  });
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
   try {
-    const stripeRes = await fetch('https://api.stripe.com/v1/checkout/sessions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${stripeKey}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      customer_email: email,
+      line_items: [
+        {
+          price_data: {
+            currency: 'aud',
+            unit_amount: PRICING.BUYERS_BRIEF_AUD * 100, // cents
+            product_data: {
+              name: `${PRODUCT.NAME} — ${PRICING.BUYERS_BRIEF_LABEL}`,
+              description: address,
+            },
+          },
+          quantity: 1,
+        },
+      ],
+      metadata: {
+        email,
+        address,
+        product: 'buyers_brief',
       },
-      body: params.toString(),
+      success_url: `${BASE_URL}/success.html?session_id={CHECKOUT_SESSION_ID}&address=${encodeURIComponent(address)}&email=${encodeURIComponent(email)}`,
+      cancel_url: `${BASE_URL}/report.html?address=${encodeURIComponent(address)}&email=${encodeURIComponent(email)}&cancelled=1`,
     });
 
-    const session = await stripeRes.json();
-
-    if (!stripeRes.ok) {
-      return res.status(400).json({ error: session.error?.message || 'Stripe error' });
-    }
-
-    return res.status(200).json({ url: session.url, sessionId: session.id });
-
+    return res.status(200).json({ url: session.url });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error('[create-checkout] Stripe error:', err.message);
+    return res.status(500).json({ error: 'Failed to create checkout session' });
   }
-}
+};

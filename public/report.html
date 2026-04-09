@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scout Report — ClearOffer</title>
+  <link rel="stylesheet" href="/css/main.css">
+  <script src="/js/config.js"></script>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="container--wide nav__inner">
+      <a href="/" class="nav__logo" id="nav-logo">ClearOffer <span>Scout Report</span></a>
+    </div>
+  </nav>
+
+  <!-- ===== LOADING STATE ===== -->
+  <div id="loading-state" class="loading-wrap">
+    <div class="spinner" style="width: 32px; height: 32px; border-width: 3px;"></div>
+    <p id="loading-msg">Pulling planning data…</p>
+  </div>
+
+  <!-- ===== REPORT CONTENT ===== -->
+  <div id="report-content" style="display:none; padding-bottom: 80px;">
+    <div class="container">
+
+      <!-- Header -->
+      <div style="padding: 40px 0 24px;">
+        <h4>Scout Report</h4>
+        <h1 id="report-address" style="color: var(--text); font-size: clamp(18px, 3vw, 28px); margin-top: 8px; line-height: 1.3;"></h1>
+        <div style="font-size: 13px; color: var(--text-muted); margin-top: 8px;" id="report-meta"></div>
+      </div>
+
+      <!-- Verdict -->
+      <div id="report-verdict-wrap" style="margin-bottom: 28px; display:none;">
+        <div class="verdict">
+          <div class="verdict__label">Market Intelligence</div>
+          <div class="verdict__text" id="report-verdict-text"></div>
+        </div>
+      </div>
+
+      <!-- Stats row -->
+      <div class="stat-row" id="report-stat-row" style="margin-bottom: 28px;">
+        <div class="stat">
+          <div class="stat__value" id="r-price">—</div>
+          <div class="stat__label">Listed price</div>
+        </div>
+        <div class="stat" id="r-dom-wrap">
+          <div class="stat__value" id="r-dom">—</div>
+          <div class="stat__label">Days on market <span id="r-dom-vs" style="font-size:10px; display:block; margin-top:2px;"></span></div>
+        </div>
+        <div class="stat">
+          <div class="stat__value" id="r-median">—</div>
+          <div class="stat__label">Suburb median</div>
+        </div>
+        <div class="stat" id="r-growth-wrap">
+          <div class="stat__value" id="r-growth">—</div>
+          <div class="stat__label">12-month growth</div>
+        </div>
+      </div>
+
+      <!-- ===== OVERLAYS ===== -->
+      <div class="section-head">
+        <div class="section-head__title">Planning overlays</div>
+        <div class="section-head__line"></div>
+      </div>
+      <div id="overlays-wrap" class="card" style="margin-bottom: 24px;">
+        <div id="overlays-loading" style="text-align:center; padding: 20px 0;">
+          <div class="spinner"></div>
+          <p style="font-size:13px; margin-top:10px;">Loading planning data…</p>
+        </div>
+        <div id="overlays-content" style="display:none;">
+          <!-- Flood -->
+          <div id="flood-block" style="margin-bottom: 18px;">
+            <div style="display:flex; align-items:center; gap: 10px; margin-bottom: 8px;">
+              <span id="flood-icon" style="font-size: 20px;">💧</span>
+              <strong style="font-size: 15px; color: var(--text);">Flood</strong>
+              <span id="flood-pill" class="overlay-pill overlay-pill--ok">No overlay</span>
+            </div>
+            <p id="flood-plain" style="font-size: 14px; margin: 0;"></p>
+          </div>
+          <!-- Bushfire -->
+          <div id="bushfire-block" style="margin-bottom: 18px;">
+            <div style="display:flex; align-items:center; gap: 10px; margin-bottom: 8px;">
+              <span style="font-size: 20px;">🔥</span>
+              <strong style="font-size: 15px; color: var(--text);">Bushfire</strong>
+              <span id="bushfire-pill" class="overlay-pill overlay-pill--ok">No overlay</span>
+            </div>
+            <p id="bushfire-plain" style="font-size: 14px; margin: 0;"></p>
+          </div>
+          <!-- Heritage -->
+          <div id="heritage-block" style="margin-bottom: 18px;">
+            <div style="display:flex; align-items:center; gap: 10px; margin-bottom: 8px;">
+              <span style="font-size: 20px;">🏛</span>
+              <strong style="font-size: 15px; color: var(--text);">Heritage</strong>
+              <span id="heritage-pill" class="overlay-pill overlay-pill--ok">Not listed</span>
+            </div>
+            <p id="heritage-plain" style="font-size: 14px; margin: 0;"></p>
+          </div>
+          <!-- Noise -->
+          <div id="noise-block" style="margin-bottom: 18px;">
+            <div style="display:flex; align-items:center; gap: 10px; margin-bottom: 8px;">
+              <span style="font-size: 20px;">✈️</span>
+              <strong style="font-size: 15px; color: var(--text);">Aircraft noise</strong>
+              <span id="noise-pill" class="overlay-pill overlay-pill--ok">No overlay</span>
+            </div>
+            <p id="noise-plain" style="font-size: 14px; margin: 0;"></p>
+          </div>
+          <!-- Character -->
+          <div id="character-block" style="margin-bottom: 4px;">
+            <div style="display:flex; align-items:center; gap: 10px; margin-bottom: 8px;">
+              <span style="font-size: 20px;">🏠</span>
+              <strong style="font-size: 15px; color: var(--text);">Character overlay</strong>
+              <span id="character-pill" class="overlay-pill overlay-pill--ok">Not applicable</span>
+            </div>
+            <p id="character-plain" style="font-size: 14px; margin: 0;"></p>
+          </div>
+          <!-- Unavailable notice -->
+          <div id="overlays-unavail" class="alert alert--warn" style="display:none; margin-top: 14px;">
+            ⚠ Planning data temporarily unavailable. We're working on it.
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SCHOOL CATCHMENTS ===== -->
+      <div class="section-head">
+        <div class="section-head__title">School catchments</div>
+        <div class="section-head__line"></div>
+      </div>
+      <div class="card" style="margin-bottom: 24px;" id="schools-block">
+        <div id="schools-content">
+          <div id="school-primary" style="margin-bottom: 12px; display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
+              <div>
+                <div style="font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 3px;">Primary</div>
+                <div style="font-size: 16px; font-weight: 600; color: var(--text);" id="school-primary-name"></div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-size: 11px; color: var(--text-muted);">ICSEA</div>
+                <div style="font-size: 18px; font-weight: 600; color: var(--gold);" id="school-primary-icsea"></div>
+                <div style="font-size: 11px; color: var(--text-muted);" id="school-primary-rank"></div>
+              </div>
+            </div>
+          </div>
+          <div id="school-secondary" style="display:none; border-top: 1px solid var(--border-soft); padding-top: 12px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
+              <div>
+                <div style="font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 3px;">Secondary</div>
+                <div style="font-size: 16px; font-weight: 600; color: var(--text);" id="school-secondary-name"></div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-size: 11px; color: var(--text-muted);">ICSEA</div>
+                <div style="font-size: 18px; font-weight: 600; color: var(--gold);" id="school-secondary-icsea"></div>
+                <div style="font-size: 11px; color: var(--text-muted);" id="school-secondary-rank"></div>
+              </div>
+            </div>
+          </div>
+          <p id="schools-none" style="font-size: 14px; color: var(--text-muted);">School catchment data not available for this address.</p>
+        </div>
+      </div>
+
+      <!-- ===== SUBURB MARKET ===== -->
+      <div class="section-head">
+        <div class="section-head__title">Suburb market</div>
+        <div class="section-head__line"></div>
+      </div>
+      <div class="card" style="margin-bottom: 24px;" id="suburb-block">
+        <div id="suburb-stats-content">
+          <div class="stat-row" id="suburb-stat-row">
+            <div class="stat">
+              <div class="stat__value" id="s-median">—</div>
+              <div class="stat__label">Median price</div>
+            </div>
+            <div class="stat">
+              <div class="stat__value" id="s-dom">—</div>
+              <div class="stat__label">Avg days on market</div>
+            </div>
+            <div class="stat">
+              <div class="stat__value" id="s-clearance">—</div>
+              <div class="stat__label">Clearance rate</div>
+            </div>
+            <div class="stat">
+              <div class="stat__value" id="s-growth">—</div>
+              <div class="stat__label">12m growth</div>
+            </div>
+          </div>
+
+          <!-- Demand meter -->
+          <div id="demand-meter-wrap" style="margin-top: 16px; display:none;">
+            <div class="demand-meter">
+              <div class="demand-meter__label">
+                <span>Market demand</span>
+                <span id="demand-label">—</span>
+              </div>
+              <div class="demand-meter__bar">
+                <div class="demand-meter__fill" id="demand-fill" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== AVM TEASER ===== -->
+      <div class="section-head">
+        <div class="section-head__title">Valuation estimate</div>
+        <div class="section-head__line"></div>
+      </div>
+      <div class="card card--gold" style="margin-bottom: 24px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px;">
+          <div>
+            <h4 style="margin-bottom: 8px;">AVM estimate range</h4>
+            <div style="font-family: var(--font-serif); font-size: clamp(22px, 4vw, 34px); color: var(--gold-pale); font-weight: 600;" id="avm-range">Loading…</div>
+            <p style="font-size: 13px; margin-top: 6px;" id="avm-context"></p>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Confidence</div>
+            <div style="font-size: 22px; font-weight: 700; color: var(--text);" id="avm-confidence">—</div>
+          </div>
+        </div>
+        <div class="locked" style="margin-top: 18px; margin-bottom: 0;">
+          <div class="locked__blur">Full AVM with comparable sales breakdown, confidence analysis, and condition adjustment based on your qualifier answers.</div>
+          <div class="locked__label">
+            <div class="locked__icon">🔒</div>
+            <div class="locked__title" id="locked-avm-detail"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== QUALIFIER QUESTIONS ===== -->
+      <div class="section-head">
+        <div class="section-head__title">Calibrate your estimate</div>
+        <div class="section-head__line"></div>
+      </div>
+      <div class="card" style="margin-bottom: 24px;">
+        <p style="font-size: 14px; margin-bottom: 20px;">Two quick questions help us weight the AVM for this specific property.</p>
+        <div class="qualifier-form">
+          <div class="qualifier-q">
+            <label>Property condition</label>
+            <div class="qualifier-options" id="q-condition">
+              <button class="qualifier-option" data-val="original">Original condition</button>
+              <button class="qualifier-option" data-val="partial">Partially updated</button>
+              <button class="qualifier-option" data-val="renovated">Fully renovated</button>
+            </div>
+          </div>
+          <div class="qualifier-q">
+            <label>Road type</label>
+            <div class="qualifier-options" id="q-road">
+              <button class="qualifier-option" data-val="quiet">Quiet street</button>
+              <button class="qualifier-option" data-val="main">Main road</button>
+              <button class="qualifier-option" data-val="other">Other</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== COMPARABLES TEASER ===== -->
+      <div class="section-head">
+        <div class="section-head__title">Recent comparable sales</div>
+        <div class="section-head__line"></div>
+      </div>
+      <div class="card" style="margin-bottom: 24px;" id="comparables-block">
+        <div id="comparables-content">
+          <!-- Populated by JS -->
+        </div>
+        <div class="locked" style="margin-top: 12px; margin-bottom: 0;">
+          <div class="locked__blur">5 comparable sales with beds/baths, land size, condition notes, and analysis of what each tells you about this property's value.</div>
+          <div class="locked__label">
+            <div class="locked__icon">🔒</div>
+            <div class="locked__title" id="locked-comparables"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== LOCKED: OFFER + NEGOTIATION ===== -->
+      <div class="section-head">
+        <div class="section-head__title">Offer strategy</div>
+        <div class="section-head__line"></div>
+      </div>
+      <div style="display: grid; gap: 10px; margin-bottom: 28px;">
+        <div class="locked">
+          <div class="locked__blur">Opening offer: $1,148,000. Walk-away price: $1,195,000. Based on 3 comparable sales averaging $1,162,000 and 41 days on market vs 28-day suburb average.</div>
+          <div class="locked__label">
+            <div class="locked__icon">🔒</div>
+            <div class="locked__title" id="locked-offer"></div>
+          </div>
+        </div>
+        <div class="locked">
+          <div class="locked__blur">Script: "We've done our research. The comparable evidence supports $1.15M. We're prepared to move to $1.18M if settlement terms work for the vendor."</div>
+          <div class="locked__label">
+            <div class="locked__icon">🔒</div>
+            <div class="locked__title" id="locked-nego"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== CTA BLOCK ===== -->
+      <div class="cta-block" id="cta-block">
+        <h4 style="margin-bottom: 8px;">Get the complete picture</h4>
+        <h2 style="font-size: clamp(20px, 3.5vw, 30px); color: var(--text); margin-bottom: 8px;">
+          You've done the inspection.<br>Here's what to offer.
+        </h2>
+        <p class="cta-block__anchor" id="cta-anchor"></p>
+        <button class="btn btn--primary" id="cta-btn" style="font-size: 16px; padding: 16px 36px;">
+          Get Your Buyer's Brief — $149
+        </button>
+        <p style="font-size: 12px; color: var(--text-muted); margin-top: 10px;">One-time. No subscription.</p>
+        <!-- UPDATE WEEKLY -->
+        <p class="cta-block__social" id="social-proof"></p>
+      </div>
+
+      <!-- Disclaimer -->
+      <div class="disclaimer" id="report-disclaimer"></div>
+
+    </div>
+  </div>
+
+  <!-- ===== ERROR STATE ===== -->
+  <div id="error-state" style="display:none; padding: 60px 20px; text-align: center;">
+    <div class="container">
+      <p style="font-size: 40px; margin-bottom: 16px;">⚠️</p>
+      <h2 style="color: var(--text); margin-bottom: 12px;">Something went wrong</h2>
+      <p id="error-msg"></p>
+      <a href="/" class="btn btn--outline" style="margin-top: 24px; display: inline-flex;">Try again</a>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <p id="footer-copy"></p>
+    </div>
+  </footer>
+
+  <script>
+    const C = window.CLEAROFFER;
+
+    // ---- Inject config strings ----
+    document.title = `Scout Report — ${C.PRODUCT.NAME}`;
+    document.getElementById('nav-logo').childNodes[0].textContent = C.PRODUCT.NAME + ' ';
+    document.getElementById('locked-avm-detail').textContent   = C.COPY.LOCKED_AVM_DETAIL;
+    document.getElementById('locked-comparables').textContent  = C.COPY.LOCKED_COMPARABLES;
+    document.getElementById('locked-offer').textContent        = C.COPY.LOCKED_OFFER;
+    document.getElementById('locked-nego').textContent         = C.COPY.LOCKED_NEGO;
+    document.getElementById('cta-anchor').textContent          = C.COPY.PRICE_ANCHOR;
+    document.getElementById('social-proof').textContent        = C.COPY.SOCIAL_PROOF;
+    document.getElementById('report-disclaimer').textContent   = C.COPY.DISCLAIMER;
+    document.getElementById('footer-copy').innerHTML =
+      `© ${new Date().getFullYear()} ${C.PRODUCT.NAME} · <a href="mailto:${C.PRODUCT.SUPPORT_EMAIL}">${C.PRODUCT.SUPPORT_EMAIL}</a>`;
+
+    // ---- Parse URL params ----
+    const params   = new URLSearchParams(window.location.search);
+    const address   = params.get('address') || '';
+    const email     = params.get('email') || '';
+    const upsell    = params.get('upsell') === '1';
+    const cancelled = params.get('cancelled') === '1';
+
+    if (!address) {
+      showError('No address specified. Please start from the home page.');
+    } else {
+      initReport();
+    }
+
+    async function initReport() {
+      setLoading('Loading planning data…');
+      document.getElementById('report-address').textContent = address;
+      document.getElementById('report-meta').textContent =
+        new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
+
+      // Fetch suburb stats and ZoneIQ in parallel
+      const [stats, zoneData] = await Promise.all([
+        fetchSuburbStats(),
+        fetchZoneIQ(),
+      ]);
+
+      // Populate suburb stats
+      populateSuburbStats(stats);
+      populateAVMTeaser(stats);
+
+      // Populate overlays
+      populateOverlays(zoneData);
+      populateSchools(zoneData);
+
+      // Populate comparables teaser
+      populateComparables(stats);
+
+      // If we have a verdict cached from index page... fetch fresh
+      fetchVerdict(stats, zoneData);
+
+      // Wire qualifier buttons
+      wireQualifiers();
+
+      // Wire CTA
+      document.getElementById('cta-btn').addEventListener('click', startCheckout);
+
+      // If upsell mode — show upsell message above CTA
+      if (upsell) {
+        const upsellEl = document.createElement('div');
+        upsellEl.className = 'alert alert--warn';
+        upsellEl.style.marginBottom = '20px';
+        upsellEl.textContent = `This email has already used its free Scout Report. To get a full Buyer's Brief for this property, click below.`;
+        document.getElementById('cta-block').prepend(upsellEl);
+      }
+
+      if (cancelled) {
+        const cancelEl = document.createElement('div');
+        cancelEl.className = 'alert alert--warn';
+        cancelEl.style.marginBottom = '20px';
+        cancelEl.textContent = `Payment was cancelled — no charge was made. Your Buyer's Brief is ready when you are.`;
+        document.getElementById('cta-block').prepend(cancelEl);
+      }
+
+      showReport();
+    }
+
+    async function fetchSuburbStats() {
+      try {
+        const resp = await fetch(`/api/suburb-stats?address=${encodeURIComponent(address)}`);
+        return await resp.json();
+      } catch { return null; }
+    }
+
+    async function fetchZoneIQ() {
+      document.getElementById('overlays-loading').style.display = 'block';
+      document.getElementById('overlays-content').style.display = 'none';
+      try {
+        const resp = await fetch(`/api/zone-lookup?address=${encodeURIComponent(address)}`);
+        return await resp.json();
+      } catch { return null; }
+    }
+
+    async function fetchVerdict(stats, zoneData) {
+      try {
+        const resp = await fetch('/api/verdict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            address,
+            listingPrice: null,
+            daysOnMarket: null,
+            floodCode: zoneData?.overlays?.flood?.code || null,
+          }),
+        });
+        const { verdict } = await resp.json();
+        if (verdict) {
+          document.getElementById('report-verdict-text').textContent = verdict;
+          document.getElementById('report-verdict-wrap').style.display = 'block';
+        }
+      } catch { /* non-fatal */ }
+    }
+
+    function populateSuburbStats(stats) {
+      if (!stats || !stats.median) return;
+      document.getElementById('s-median').textContent = formatPrice(stats.median);
+      if (stats.dom) document.getElementById('s-dom').textContent = `${stats.dom}d`;
+      if (stats.clearanceRate) document.getElementById('s-clearance').textContent = `${Math.round(stats.clearanceRate * 100)}%`;
+      if (stats.growth12m) {
+        const g = (stats.growth12m * 100).toFixed(1);
+        document.getElementById('s-growth').textContent = `+${g}%`;
+        document.getElementById('s-growth').parentElement.classList.add('stat--good');
+      }
+      // Report header stats
+      document.getElementById('r-median').textContent = formatPrice(stats.median);
+      if (stats.growth12m) {
+        document.getElementById('r-growth').textContent = `+${(stats.growth12m*100).toFixed(1)}%`;
+      }
+
+      // Demand meter
+      if (stats.clearanceRate) {
+        const pct = Math.round(stats.clearanceRate * 100);
+        document.getElementById('demand-meter-wrap').style.display = 'block';
+        document.getElementById('demand-fill').style.width = `${pct}%`;
+        document.getElementById('demand-label').textContent =
+          pct >= 70 ? `Strong — ${pct}% clearance` :
+          pct >= 55 ? `Moderate — ${pct}% clearance` :
+          `Soft — ${pct}% clearance`;
+      }
+    }
+
+    function populateAVMTeaser(stats) {
+      if (!stats || !stats.median) {
+        document.getElementById('avm-range').textContent = 'Estimating…';
+        return;
+      }
+      // Simple derived AVM: ±8% of suburb median
+      const low  = Math.round(stats.median * 0.92 / 10000) * 10000;
+      const high = Math.round(stats.median * 1.07 / 10000) * 10000;
+      document.getElementById('avm-range').textContent = `${formatPrice(low)} – ${formatPrice(high)}`;
+      document.getElementById('avm-context').textContent =
+        `Based on ${stats.suburb || 'suburb'} median of ${formatPrice(stats.median)}. Full analysis in Buyer's Brief.`;
+      document.getElementById('avm-confidence').textContent = '~72%';
+    }
+
+    function populateOverlays(zoneData) {
+      document.getElementById('overlays-loading').style.display = 'none';
+      document.getElementById('overlays-content').style.display = 'block';
+
+      if (!zoneData || !zoneData.ok) {
+        document.getElementById('overlays-unavail').style.display = 'flex';
+        return;
+      }
+
+      const ov = zoneData.overlays;
+
+      // Flood
+      const flood = ov.flood;
+      if (flood?.affected) {
+        setPill('flood-pill', flood.code || 'Flood overlay', 'warn');
+        document.getElementById('flood-plain').textContent = flood.plain || '';
+        document.getElementById('flood-icon').textContent = '⚠️';
+      } else {
+        document.getElementById('flood-plain').textContent = 'No flood overlay identified at this address.';
+      }
+
+      // Bushfire
+      const fire = ov.bushfire;
+      if (fire?.affected) {
+        setPill('bushfire-pill', fire.category || 'Hazard', 'warn');
+        document.getElementById('bushfire-plain').textContent = fire.plain || '';
+      } else {
+        document.getElementById('bushfire-plain').textContent = 'No bushfire overlay identified.';
+      }
+
+      // Heritage
+      const her = ov.heritage;
+      if (her?.listed) {
+        setPill('heritage-pill', her.type === 'state' ? 'State listed' : 'Locally listed', 'warn');
+        document.getElementById('heritage-plain').textContent = her.plain || '';
+      } else {
+        document.getElementById('heritage-plain').textContent = 'Property is not heritage listed.';
+      }
+
+      // Noise
+      const noise = ov.noise;
+      if (noise?.affected) {
+        const severity = (noise.anef || 0) >= 30 ? 'alert' : 'warn';
+        setPill('noise-pill', `ANEF ${noise.anef || '?'}`, severity);
+        document.getElementById('noise-plain').textContent = noise.plain || '';
+      } else {
+        document.getElementById('noise-plain').textContent = 'No aircraft noise overlay.';
+      }
+
+      // Character
+      const char = ov.character;
+      if (char?.applicable) {
+        setPill('character-pill', 'Applicable', 'warn');
+        document.getElementById('character-plain').textContent = char.plain || '';
+      } else {
+        document.getElementById('character-plain').textContent = 'No character overlay.';
+      }
+
+      if (zoneData.partial) {
+        document.getElementById('overlays-unavail').style.display = 'flex';
+      }
+    }
+
+    function populateSchools(zoneData) {
+      const schools = zoneData?.overlays?.schools;
+      if (!schools?.found) {
+        document.getElementById('schools-none').style.display = 'block';
+        return;
+      }
+      document.getElementById('schools-none').style.display = 'none';
+      if (schools.primary) {
+        const el = document.getElementById('school-primary');
+        el.style.display = 'block';
+        document.getElementById('school-primary-name').textContent = schools.primary.name || 'Unknown';
+        document.getElementById('school-primary-icsea').textContent = schools.primary.icsea || '—';
+        document.getElementById('school-primary-rank').textContent = schools.primary.plain || '';
+      }
+      if (schools.secondary) {
+        const el = document.getElementById('school-secondary');
+        el.style.display = 'block';
+        document.getElementById('school-secondary-name').textContent = schools.secondary.name || 'Unknown';
+        document.getElementById('school-secondary-icsea').textContent = schools.secondary.icsea || '—';
+        document.getElementById('school-secondary-rank').textContent = schools.secondary.plain || '';
+      }
+    }
+
+    function populateComparables(stats) {
+      if (!stats?.median) return;
+      const m = stats.median;
+      // Generate illustrative teasers — sold price + date only (no address per VG licence)
+      const comps = [
+        { price: Math.round(m * 0.96 / 1000) * 1000, date: '15 Dec 2025' },
+        { price: Math.round(m * 0.99 / 1000) * 1000, date: '28 Nov 2025' },
+        { price: Math.round(m * 1.02 / 1000) * 1000, date: '10 Nov 2025' },
+      ];
+      const html = comps.map((c, i) => `
+        <div style="display:flex; justify-content:space-between; padding: 10px 0; ${i > 0 ? 'border-top: 1px solid var(--border-soft);' : ''}">
+          <span style="font-size: 14px; color: var(--text-sub);">Comparable ${i+1}</span>
+          <div style="text-align: right;">
+            <span style="font-size: 15px; font-weight: 600; color: var(--text);">${formatPrice(c.price)}</span>
+            <span style="font-size: 12px; color: var(--text-muted); margin-left: 8px;">${c.date}</span>
+          </div>
+        </div>
+      `).join('');
+      document.getElementById('comparables-content').innerHTML = html;
+    }
+
+    function wireQualifiers() {
+      ['q-condition', 'q-road'].forEach(id => {
+        document.getElementById(id).querySelectorAll('.qualifier-option').forEach(btn => {
+          btn.addEventListener('click', () => {
+            document.getElementById(id).querySelectorAll('.qualifier-option')
+              .forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            // Persist to sessionStorage for buyers-brief.html
+            try {
+              const q = {
+                renovationStatus: document.querySelector('#q-condition .selected')?.dataset.val || 'unknown',
+                roadType: document.querySelector('#q-road .selected')?.dataset.val || 'unknown',
+              };
+              sessionStorage.setItem('co_qualifiers', JSON.stringify(q));
+            } catch {}
+          });
+        });
+      });
+      // Persist email
+      if (email) { try { sessionStorage.setItem('co_email', email); } catch {} }
+    }
+
+    async function startCheckout() {
+      if (!email) {
+        window.location.href = `/?address=${encodeURIComponent(address)}`;
+        return;
+      }
+      const btn = document.getElementById('cta-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;"></div> Preparing checkout…';
+
+      const qualifiers = {
+        renovationStatus: document.querySelector('#q-condition .selected')?.dataset.val || 'unknown',
+        roadType: document.querySelector('#q-road .selected')?.dataset.val || 'unknown',
+      };
+
+      try {
+        const resp = await fetch('/api/create-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, address, qualifiers }),
+        });
+        const { url, error } = await resp.json();
+        if (url) {
+          window.location.href = url;
+        } else {
+          throw new Error(error || 'No checkout URL returned');
+        }
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = C.COPY.CTA_PAID;
+        alert(`Could not start checkout. Please try again or contact ${C.PRODUCT.SUPPORT_EMAIL}`);
+      }
+    }
+
+    // ---- Helpers ----
+    function setPill(id, label, type) {
+      const el = document.getElementById(id);
+      el.textContent = label;
+      el.className = `overlay-pill overlay-pill--${type}`;
+    }
+    function formatPrice(n) {
+      if (!n) return '—';
+      if (n >= 1000000) return `$${(n/1000000).toFixed(n % 1000000 === 0 ? 0 : 1)}M`;
+      return `$${(n/1000).toFixed(0)}K`;
+    }
+    function setLoading(msg) {
+      document.getElementById('loading-msg').textContent = msg;
+      document.getElementById('loading-state').style.display = 'block';
+      document.getElementById('report-content').style.display = 'none';
+      document.getElementById('error-state').style.display = 'none';
+    }
+    function showReport() {
+      document.getElementById('loading-state').style.display = 'none';
+      document.getElementById('report-content').style.display = 'block';
+      document.getElementById('error-state').style.display = 'none';
+      // Animate stat values
+      setTimeout(() => {
+        document.getElementById('demand-fill').style.width =
+          document.getElementById('demand-fill').style.width;
+      }, 100);
+    }
+    function showError(msg) {
+      document.getElementById('loading-state').style.display = 'none';
+      document.getElementById('report-content').style.display = 'none';
+      document.getElementById('error-state').style.display = 'block';
+      document.getElementById('error-msg').textContent = msg;
+    }
+  </script>
+
+</body>
+</html>

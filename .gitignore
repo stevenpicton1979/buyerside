@@ -1,4 +1,21 @@
-node_modules/
+# Secrets — never commit
 .env.local
+.env.*.local
+.env
+
+# Vercel
 .vercel
+
+# Node
+node_modules/
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+OVERNIGHT_LOG.md
+*.log
+
 .env*.local

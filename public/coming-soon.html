@@ -3,154 +3,145 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ClearOffer — Coming Soon</title>
-  <meta name="description" content="Independent property intelligence for Queensland buyers. Launching soon.">
+  <title id="page-title">ClearOffer — Coming soon</title>
+  <meta name="description" content="AI-powered property intelligence for Brisbane buyers. Coming soon.">
+  <link rel="stylesheet" href="/css/main.css">
+  <script src="/js/config.js"></script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0f172a;
-      color: #fff;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-    }
-
-    .card {
-      width: 100%;
-      max-width: 460px;
-      text-align: center;
-    }
-
-    .wordmark {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: #f8fafc;
-      letter-spacing: -0.5px;
-      margin-bottom: 1.5rem;
-    }
-
-    .tagline {
-      font-size: 1.125rem;
-      color: #94a3b8;
-      line-height: 1.6;
-      margin-bottom: 0.75rem;
-    }
-
-    .launching {
-      font-size: 0.9rem;
-      color: #475569;
-      margin-bottom: 2.5rem;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-    }
-
-    .form {
+    .cs-wrap {
+      min-height: 90vh;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 40px 20px;
+      position: relative;
     }
-
-    .form input[type="email"] {
-      width: 100%;
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 8px;
-      color: #f8fafc;
-      font-size: 1rem;
-      padding: 13px 16px;
-      outline: none;
-      transition: border-color 0.15s;
+    .cs-wrap::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 700px; height: 700px;
+      background: radial-gradient(ellipse, rgba(201,150,58,0.05) 0%, transparent 65%);
+      pointer-events: none;
     }
-
-    .form input[type="email"]::placeholder { color: #475569; }
-    .form input[type="email"]:focus { border-color: #6366f1; }
-
-    .form button {
-      width: 100%;
-      background: #6366f1;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      font-size: 1rem;
+    .cs-logo {
+      font-family: var(--font-serif);
+      font-size: 32px;
       font-weight: 600;
-      padding: 13px 24px;
-      cursor: pointer;
-      transition: background 0.15s;
+      color: var(--gold-light);
+      margin-bottom: 40px;
+      letter-spacing: -0.5px;
     }
-    .form button:hover    { background: #4f46e5; }
-    .form button:disabled { opacity: 0.6; cursor: not-allowed; }
-
-    .feedback {
-      margin-top: 14px;
-      font-size: 0.875rem;
-      min-height: 1.25rem;
+    .cs-wrap h1 {
+      font-size: clamp(36px, 7vw, 72px);
+      color: var(--text);
+      margin-bottom: 16px;
+      line-height: 1.1;
     }
-    .feedback.success { color: #34d399; }
-    .feedback.error   { color: #f87171; }
+    .cs-wrap h1 em { color: var(--gold-pale); font-style: italic; }
+    .cs-wrap > p {
+      font-size: 18px;
+      color: var(--text-sub);
+      max-width: 420px;
+      margin: 0 auto 40px;
+      line-height: 1.6;
+    }
+    .notify-form {
+      display: flex;
+      gap: 10px;
+      max-width: 400px;
+      margin: 0 auto;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .notify-input {
+      flex: 1;
+      min-width: 220px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      padding: 13px 16px;
+      border-radius: var(--radius);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .notify-input:focus { border-color: var(--gold-dim); }
+    .notify-input::placeholder { color: var(--text-muted); }
+    .notify-success {
+      font-size: 15px;
+      color: #5aaa7a;
+      margin-top: 16px;
+      display: none;
+    }
+    .tagline-below {
+      margin-top: 60px;
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
   </style>
 </head>
 <body>
-  <div class="card">
-    <div class="wordmark">ClearOffer</div>
-    <p class="tagline">Independent property intelligence for Queensland buyers.</p>
-    <p class="launching">Launching soon</p>
 
-    <form class="form" id="notify-form">
+  <div class="cs-wrap">
+    <div class="cs-logo" id="cs-logo">ClearOffer</div>
+
+    <h1>Know what to offer<br><em>before you ask.</em></h1>
+    <p id="cs-sub">AI-powered property intelligence for Brisbane buyers. The analytical work a buyer's agent does — without the $15,000 fee.</p>
+
+    <div class="notify-form">
       <input
         type="email"
-        id="email-input"
-        placeholder="Get notified when we launch"
-        autocomplete="email"
-        required
+        class="notify-input"
+        id="notify-email"
+        placeholder="your@email.com"
       >
-      <button type="submit" id="submit-btn">Notify me</button>
-    </form>
-    <p class="feedback" id="feedback" aria-live="polite"></p>
+      <button class="btn btn--primary" id="notify-btn">Notify me</button>
+    </div>
+    <div class="notify-success" id="notify-success">✓ We'll let you know when we launch.</div>
+
+    <div class="tagline-below" id="cs-tagline-below"></div>
   </div>
 
   <script>
-    const form      = document.getElementById('notify-form');
-    const emailEl   = document.getElementById('email-input');
-    const btn       = document.getElementById('submit-btn');
-    const feedback  = document.getElementById('feedback');
+    const C = window.CLEAROFFER;
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = emailEl.value.trim();
-      if (!email) return;
+    // Wire config-driven strings
+    document.title = `${C.PRODUCT.NAME} — Coming soon`;
+    document.getElementById('cs-logo').textContent        = C.PRODUCT.NAME;
+    document.getElementById('cs-tagline-below').textContent = `${C.PRODUCT.DOMAIN} · ${new Date().getFullYear()}`;
 
+    document.getElementById('notify-btn').addEventListener('click', async () => {
+      const email = document.getElementById('notify-email').value.trim();
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+
+      const btn = document.getElementById('notify-btn');
       btn.disabled = true;
-      btn.textContent = 'Submitting…';
-      feedback.textContent = '';
-      feedback.className = 'feedback';
+      btn.textContent = '…';
 
       try {
-        const res = await fetch('/api/notify', {
+        // Store in Supabase as scout_report with placeholder address
+        await fetch('/api/submit-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email })
+          body: JSON.stringify({ email, address: '__waitlist__' }),
         });
+      } catch { /* non-fatal */ }
 
-        if (res.ok) {
-          feedback.textContent = 'You\'re on the list — we\'ll be in touch.';
-          feedback.className = 'feedback success';
-          emailEl.value = '';
-        } else {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || 'Submission failed');
-        }
-      } catch (err) {
-        feedback.textContent = err.message || 'Something went wrong. Please try again.';
-        feedback.className = 'feedback error';
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Notify me';
-      }
+      document.getElementById('notify-success').style.display = 'block';
+      btn.style.display = 'none';
+    });
+
+    document.getElementById('notify-email').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('notify-btn').click();
     });
   </script>
+
 </body>
 </html>

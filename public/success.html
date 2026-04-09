@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment confirmed — ClearOffer</title>
+  <link rel="stylesheet" href="/css/main.css">
+  <script src="/js/config.js"></script>
+  <style>
+    .success-wrap {
+      min-height: 80vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+    .success-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 48px 40px;
+      text-align: center;
+      max-width: 480px;
+      width: 100%;
+      animation: fadeUp 0.5s ease both;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .success-icon {
+      width: 64px; height: 64px;
+      background: rgba(201,150,58,0.12);
+      border: 1px solid var(--gold-dim);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px;
+      margin: 0 auto 24px;
+    }
+    .success-card h1 {
+      font-size: 28px;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+    .success-card p {
+      font-size: 15px;
+      color: var(--text-sub);
+      margin-bottom: 8px;
+      line-height: 1.6;
+    }
+    .countdown {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 20px;
+    }
+    .countdown span {
+      color: var(--gold);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="container--wide nav__inner">
+      <a href="/" class="nav__logo" id="nav-logo">ClearOffer</a>
+    </div>
+  </nav>
+
+  <div class="success-wrap">
+    <div class="success-card">
+      <div class="success-icon">✓</div>
+      <h1>Payment confirmed.</h1>
+      <p id="address-line">Preparing your Buyer's Brief…</p>
+      <p style="font-size: 14px; color: var(--text-muted);">This usually takes 30–60 seconds. We're pulling comparable sales, analysing planning overlays, and building your negotiation strategy.</p>
+
+      <div style="margin: 28px 0;">
+        <div class="spinner" style="width: 28px; height: 28px; border-width: 3px; margin: 0 auto;"></div>
+      </div>
+
+      <div class="countdown">Redirecting in <span id="countdown">3</span>s…</div>
+    </div>
+  </div>
+
+  <script>
+    const C = window.CLEAROFFER;
+    document.getElementById('nav-logo').textContent = C.PRODUCT.NAME;
+    document.title = `Payment confirmed — ${C.PRODUCT.NAME}`;
+
+    const params    = new URLSearchParams(window.location.search);
+    const sessionId = params.get('session_id') || '';
+    const address   = params.get('address') || '';
+
+    if (address) {
+      document.getElementById('address-line').textContent = address;
+    }
+
+    // Retrieve email from sessionStorage (set when email gate was submitted)
+    let email = '';
+    try { email = sessionStorage.getItem('co_email') || ''; } catch {}
+
+    // Countdown then redirect to Buyer's Brief
+    let count = 3;
+    const countEl = document.getElementById('countdown');
+
+    // Give webhook a moment to process before redirecting
+    const timer = setInterval(() => {
+      count--;
+      countEl.textContent = count;
+      if (count <= 0) {
+        clearInterval(timer);
+        // Also try reading email from URL (Stripe passes customer_email back via metadata)
+        const urlEmail = params.get('email') || email;
+        const dest = `/buyers-brief.html`
+          + `?address=${encodeURIComponent(address)}`
+          + `&email=${encodeURIComponent(urlEmail)}`
+          + `&session_id=${encodeURIComponent(sessionId)}`;
+        window.location.href = dest;
+      }
+    }, 1000);
+  </script>
+
+</body>
+</html>

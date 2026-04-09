@@ -1,1012 +1,417 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- Coming-soon redirect removed from HTML — now handled by vercel.json for production.
-     Locally (npm run dev / npx serve), index.html loads directly. -->
   <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ClearOffer — Independent Property Analysis</title>
-<meta name="description" content="Get a clear, independent analysis before you make an offer. Flood risk, zoning, comparable sales and negotiation intelligence for Brisbane buyers.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
-
-<style>
-  :root {
-    --navy: #0d1b2a;
-    --navy-mid: #152233;
-    --navy-light: #1e3045;
-    --navy-deep: #080f18;
-    --cream: #f5f0e8;
-    --cream-dim: #d8d2c6;
-    --amber: #d4860a;
-    --amber-light: #f0a020;
-    --text-primary: #f0ebe2;
-    --text-secondary: #8da0b3;
-    --text-dim: #4a6278;
-    --border: #1e3a54;
-    --rule: rgba(213,190,150,0.12);
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-
-  body {
-    background: var(--navy-deep);
-    color: var(--text-primary);
-    font-family: 'Instrument Sans', sans-serif;
-    font-size: 15px;
-    line-height: 1.6;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* ─── NAV ─── */
-  nav {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    z-index: 100;
-    padding: 0 40px;
-    height: 56px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: rgba(8,15,24,0.7);
-    backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--rule);
-  }
-
-  .logo {
-    font-family: 'DM Serif Display', serif;
-    font-size: 20px;
-    color: var(--cream);
-    letter-spacing: -0.02em;
-  }
-
-  .nav-right {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--text-dim);
-  }
-
-  /* ─── HERO ─── */
-  .hero {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 100px 24px 60px;
-    position: relative;
-    overflow: hidden;
-  }
-
-  /* Background grid */
-  .hero::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(212,134,10,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(212,134,10,0.03) 1px, transparent 1px);
-    background-size: 60px 60px;
-    mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 0%, transparent 100%);
-  }
-
-  /* Glow */
-  .hero::after {
-    content: '';
-    position: absolute;
-    top: 20%;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 600px;
-    height: 400px;
-    background: radial-gradient(ellipse, rgba(212,134,10,0.06) 0%, transparent 70%);
-    pointer-events: none;
-  }
-
-  .hero-inner {
-    max-width: 720px;
-    width: 100%;
-    text-align: center;
-    position: relative;
-    z-index: 1;
-  }
-
-  .hero-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--amber);
-    border: 1px solid rgba(212,134,10,0.25);
-    padding: 6px 14px;
-    margin-bottom: 32px;
-    animation: fadeUp 0.6s ease both;
-  }
-
-  .hero-tag-dot {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: var(--amber);
-    animation: pulse 2s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-  }
-
-  .hero-headline {
-    font-family: 'DM Serif Display', serif;
-    font-size: clamp(38px, 6vw, 64px);
-    color: var(--cream);
-    letter-spacing: -0.03em;
-    line-height: 1.05;
-    margin-bottom: 22px;
-    animation: fadeUp 0.6s ease 0.1s both;
-  }
-
-  .hero-headline em {
-    font-style: italic;
-    color: var(--amber-light);
-  }
-
-  .hero-sub {
-    font-size: 17px;
-    color: var(--text-secondary);
-    line-height: 1.65;
-    max-width: 520px;
-    margin: 0 auto 44px;
-    animation: fadeUp 0.6s ease 0.2s both;
-  }
-
-  .hero-sub strong { color: var(--cream-dim); font-weight: 500; }
-
-  /* ─── SEARCH BOX ─── */
-  .search-wrap {
-    width: 100%;
-    max-width: 580px;
-    margin: 0 auto;
-    animation: fadeUp 0.6s ease 0.3s both;
-    position: relative;
-  }
-
-  .search-box {
-    display: flex;
-    background: var(--navy-mid);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    overflow: visible;
-    position: relative;
-    transition: border-color 0.2s;
-    box-shadow: 0 0 0 0 rgba(212,134,10,0);
-    transition: box-shadow 0.3s, border-color 0.2s;
-  }
-
-  .search-box:focus-within {
-    border-color: var(--amber);
-    box-shadow: 0 0 0 3px rgba(212,134,10,0.12);
-  }
-
-  .search-icon {
-    padding: 0 16px;
-    display: flex;
-    align-items: center;
-    color: var(--text-dim);
-    font-size: 16px;
-    flex-shrink: 0;
-  }
-
-  .search-input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: var(--cream);
-    font-family: 'Instrument Sans', sans-serif;
-    font-size: 15px;
-    padding: 16px 0;
-    min-width: 0;
-  }
-
-  .search-input::placeholder { color: var(--text-dim); }
-
-  .search-btn {
-    background: var(--amber);
-    color: var(--navy);
-    border: none;
-    font-family: 'Instrument Sans', sans-serif;
-    font-weight: 700;
-    font-size: 14px;
-    padding: 0 24px;
-    cursor: pointer;
-    transition: background 0.15s;
-    white-space: nowrap;
-    flex-shrink: 0;
-    border-radius: 0 3px 3px 0;
-  }
-
-  .search-btn:hover { background: var(--amber-light); }
-
-  /* Autocomplete dropdown */
-  .autocomplete-dropdown {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0; right: 0;
-    background: var(--navy-mid);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    z-index: 50;
-    display: none;
-    overflow: hidden;
-  }
-
-  .autocomplete-dropdown.visible { display: block; }
-
-  .autocomplete-item {
-    padding: 12px 16px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    border-bottom: 1px solid rgba(30,58,84,0.5);
-    transition: background 0.1s;
-  }
-
-  .autocomplete-item:last-child { border-bottom: none; }
-  .autocomplete-item:hover { background: var(--navy-light); }
-
-  .autocomplete-icon {
-    font-size: 13px;
-    color: var(--text-dim);
-    flex-shrink: 0;
-  }
-
-  .autocomplete-address {
-    font-size: 14px;
-    color: var(--cream-dim);
-    flex: 1;
-  }
-
-  .autocomplete-suburb {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    color: var(--text-dim);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-
-  .search-hint {
-    font-size: 12px;
-    color: var(--text-dim);
-    margin-top: 12px;
-    text-align: center;
-    font-family: 'DM Mono', monospace;
-    letter-spacing: 0.04em;
-  }
-
-  /* ─── SOCIAL PROOF ─── */
-  .social-proof {
-    margin-top: 48px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    animation: fadeUp 0.6s ease 0.4s both;
-  }
-
-  .proof-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--green, #22a05a);
-  }
-
-  .proof-text {
-    font-size: 13px;
-    color: var(--text-secondary);
-  }
-
-  .proof-text strong { color: var(--amber-light); }
-
-  /* ─── SCROLL INDICATOR ─── */
-  .scroll-indicator {
-    position: absolute;
-    bottom: 32px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    color: var(--text-dim);
-    font-family: 'DM Mono', monospace;
-    font-size: 9px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    animation: fadeUp 0.6s ease 0.6s both;
-    cursor: pointer;
-  }
-
-  .scroll-arrow {
-    animation: bounce 1.5s ease-in-out infinite;
-  }
-
-  @keyframes bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(4px); }
-  }
-
-  /* ─── HOW IT WORKS ─── */
-  .how-section {
-    padding: 100px 24px;
-    max-width: 900px;
-    margin: 0 auto;
-  }
-
-  .section-eyebrow {
-    font-family: 'DM Mono', monospace;
-    font-size: 9px;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--amber);
-    margin-bottom: 14px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .section-eyebrow::before {
-    content: '';
-    display: block;
-    width: 24px;
-    height: 1px;
-    background: var(--amber);
-  }
-
-  .section-title {
-    font-family: 'DM Serif Display', serif;
-    font-size: clamp(28px, 4vw, 42px);
-    color: var(--cream);
-    letter-spacing: -0.025em;
-    line-height: 1.1;
-    margin-bottom: 16px;
-  }
-
-  .section-sub {
-    font-size: 16px;
-    color: var(--text-secondary);
-    line-height: 1.65;
-    max-width: 540px;
-    margin-bottom: 56px;
-  }
-
-  /* Steps */
-  .steps {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 1px;
-    background: var(--border);
-    border: 1px solid var(--border);
-  }
-
-  .step {
-    background: var(--navy-mid);
-    padding: 28px 24px;
-    position: relative;
-  }
-
-  .step-num {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    color: var(--amber);
-    margin-bottom: 14px;
-  }
-
-  .step-title {
-    font-family: 'DM Serif Display', serif;
-    font-size: 19px;
-    color: var(--cream);
-    letter-spacing: -0.01em;
-    margin-bottom: 8px;
-    line-height: 1.2;
-  }
-
-  .step-desc {
-    font-size: 13.5px;
-    color: var(--text-secondary);
-    line-height: 1.6;
-  }
-
-  .step-tag {
-    display: inline-block;
-    font-family: 'DM Mono', monospace;
-    font-size: 9px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    padding: 3px 8px;
-    margin-top: 12px;
-    border-radius: 2px;
-  }
-
-  .tag-free { background: rgba(26,122,74,0.15); color: #22a05a; }
-  .tag-paid { background: rgba(212,134,10,0.12); color: var(--amber-light); }
-
-  /* ─── WHAT YOU GET ─── */
-  .what-section {
-    padding: 80px 24px 100px;
-    background: linear-gradient(180deg, var(--navy-deep) 0%, #0a1520 100%);
-    border-top: 1px solid var(--rule);
-    border-bottom: 1px solid var(--rule);
-  }
-
-  .what-inner {
-    max-width: 900px;
-    margin: 0 auto;
-  }
-
-  .what-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
-    margin-top: 48px;
-  }
-
-  .what-card {
-    background: var(--navy-mid);
-    border: 1px solid var(--border);
-    padding: 22px 24px;
-    position: relative;
-  }
-
-  .what-card.featured {
-    border-color: rgba(212,134,10,0.3);
-    background: linear-gradient(135deg, rgba(212,134,10,0.05) 0%, var(--navy-mid) 100%);
-  }
-
-  .what-card-tag {
-    font-family: 'DM Mono', monospace;
-    font-size: 8px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    margin-bottom: 10px;
-  }
-
-  .what-card.featured .what-card-tag { color: var(--amber); }
-
-  .what-card-title {
-    font-family: 'DM Serif Display', serif;
-    font-size: 17px;
-    color: var(--cream);
-    letter-spacing: -0.01em;
-    margin-bottom: 8px;
-  }
-
-  .what-card-desc {
-    font-size: 13.5px;
-    color: var(--text-secondary);
-    line-height: 1.6;
-  }
-
-  /* ─── THE CASE ─── */
-  .case-section {
-    padding: 100px 24px;
-    max-width: 900px;
-    margin: 0 auto;
-  }
-
-  .case-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 40px;
-    align-items: start;
-    margin-top: 48px;
-  }
-
-  .case-stat {
-    margin-bottom: 28px;
-  }
-
-  .case-stat-value {
-    font-family: 'DM Serif Display', serif;
-    font-size: 48px;
-    color: var(--amber-light);
-    letter-spacing: -0.04em;
-    line-height: 1;
-    margin-bottom: 6px;
-  }
-
-  .case-stat-label {
-    font-size: 14px;
-    color: var(--text-secondary);
-    line-height: 1.5;
-  }
-
-  .case-quote {
-    background: var(--navy-mid);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--amber);
-    padding: 24px;
-  }
-
-  .case-quote-text {
-    font-family: 'DM Serif Display', serif;
-    font-size: 19px;
-    color: var(--cream);
-    line-height: 1.45;
-    letter-spacing: -0.01em;
-    margin-bottom: 14px;
-    font-style: italic;
-  }
-
-  .case-quote-attr {
-    font-size: 12px;
-    color: var(--text-dim);
-    font-family: 'DM Mono', monospace;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-
-  /* ─── PRICING ─── */
-  .pricing-section {
-    padding: 80px 24px 100px;
-    text-align: center;
-    background: linear-gradient(180deg, #0a1520 0%, var(--navy-deep) 100%);
-    border-top: 1px solid var(--rule);
-  }
-
-  .pricing-inner { max-width: 560px; margin: 0 auto; }
-
-  .pricing-card {
-    background: var(--navy-mid);
-    border: 1px solid rgba(212,134,10,0.25);
-    padding: 40px;
-    margin-top: 40px;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .pricing-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, var(--amber), var(--amber-light));
-  }
-
-  .pricing-compare {
-    font-size: 13px;
-    color: var(--text-dim);
-    text-decoration: line-through;
-    margin-bottom: 4px;
-    font-family: 'DM Mono', monospace;
-  }
-
-  .pricing-amount {
-    font-family: 'DM Serif Display', serif;
-    font-size: 64px;
-    color: var(--cream);
-    letter-spacing: -0.04em;
-    line-height: 1;
-    margin-bottom: 4px;
-  }
-
-  .pricing-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    margin-bottom: 28px;
-  }
-
-  .pricing-features {
-    text-align: left;
-    margin-bottom: 28px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .pricing-feature {
-    display: flex;
-    gap: 10px;
-    font-size: 14px;
-    color: var(--text-secondary);
-  }
-
-  .pricing-feature::before {
-    content: '→';
-    color: var(--amber);
-    flex-shrink: 0;
-  }
-
-  .btn-hero {
-    display: block;
-    width: 100%;
-    background: var(--amber);
-    color: var(--navy);
-    font-family: 'Instrument Sans', sans-serif;
-    font-weight: 700;
-    font-size: 16px;
-    padding: 16px;
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
-    transition: background 0.15s, transform 0.1s;
-    letter-spacing: 0.01em;
-  }
-
-  .btn-hero:hover { background: var(--amber-light); transform: translateY(-1px); }
-
-  .pricing-disclaimer {
-    font-size: 11px;
-    color: var(--text-dim);
-    margin-top: 14px;
-    line-height: 1.6;
-  }
-
-  /* ─── FOOTER ─── */
-  footer {
-    border-top: 1px solid var(--rule);
-    padding: 32px 40px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 16px;
-  }
-
-  .footer-logo {
-    font-family: 'DM Serif Display', serif;
-    font-size: 17px;
-    color: var(--cream-dim);
-    letter-spacing: -0.02em;
-  }
-
-  .footer-disclaimer {
-    font-size: 11px;
-    color: var(--text-dim);
-    line-height: 1.6;
-    max-width: 560px;
-  }
-
-  /* ─── ANIMATIONS ─── */
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(16px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .reveal {
-    opacity: 0;
-    transform: translateY(20px);
-    transition: opacity 0.6s ease, transform 0.6s ease;
-  }
-
-  .reveal.visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  /* ─── MOBILE ─── */
-  @media (max-width: 680px) {
-    nav { padding: 0 20px; }
-    .steps { grid-template-columns: 1fr; }
-    .what-grid { grid-template-columns: 1fr; }
-    .case-grid { grid-template-columns: 1fr; }
-    .hero-headline { font-size: 36px; }
-    footer { flex-direction: column; }
-  }
-</style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ClearOffer — Know what to offer before you ask</title>
+  <meta name="description" content="AI-powered property intelligence for Brisbane home buyers. Get a free Scout Report, then a full Buyer's Brief for $149.">
+  <meta property="og:title" content="ClearOffer — Know what to offer before you ask">
+  <meta property="og:description" content="The analytical work a buyer's agent does — without the $15,000 fee.">
+  <link rel="stylesheet" href="/css/main.css">
+  <script src="/js/config.js"></script>
 </head>
 <body>
 
-<!-- NAV -->
-<nav>
-  <div class="logo">ClearOffer</div>
-  <div class="nav-right">Brisbane · Independent · No agenda</div>
-</nav>
-
-<!-- HERO -->
-<section class="hero">
-  <div class="hero-inner">
-
-    <div class="hero-tag">
-      <div class="hero-tag-dot"></div>
-      Brisbane Property Research
+  <nav class="nav">
+    <div class="container--wide nav__inner">
+      <div class="nav__logo" id="nav-logo">ClearOffer <span id="nav-sub">Brisbane property intelligence</span></div>
     </div>
+  </nav>
 
-    <h1 class="hero-headline">
-      Independent property intelligence.<br>Before you <em>make an offer.</em>
-    </h1>
+  <!-- ===== HERO / SEARCH ===== -->
+  <section class="hero" id="hero-section">
+    <div class="container">
+      <div class="hero__eyebrow">Free Scout Report · $149 Buyer's Brief</div>
+      <h1 class="hero__title">Know what to offer<br><em>before you ask.</em></h1>
+      <p class="hero__sub">The analytical work a buyer's agent does — without the $15,000 fee. Enter any Brisbane address to start.</p>
 
-    <p class="hero-sub">
-      ClearOffer analyses flood risk, zoning, comparable sales and negotiation leverage — so you walk in knowing exactly what the property is worth and what to offer.
-    </p>
-
-    <!-- SEARCH -->
-    <div class="search-wrap">
-      <div class="search-box">
-        <div class="search-icon">📍</div>
+      <div class="search-wrap">
         <input
           type="text"
+          id="address-input"
+          data-testid="address-input"
           class="search-input"
-          id="addressInput"
-          placeholder="Enter a Brisbane property address…"
+          placeholder="14 Example Street, Chelmer QLD 4068"
           autocomplete="off"
-          oninput="handleInput(this.value)"
-          onkeydown="handleKey(event)"
+          spellcheck="false"
         >
-        <button class="search-btn" onclick="handleSearch()">Get Your Free Report →</button>
+        <button class="search-btn" id="search-btn" data-testid="search-btn" title="Analyse this property">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+        </button>
+        <div class="autocomplete-list" id="autocomplete-list" data-testid="autocomplete-list"></div>
       </div>
 
-      <div class="autocomplete-dropdown" id="dropdown"></div>
-
-      <div class="search-hint">Try: 14 Riverview Tce, Chelmer</div>
-    </div>
-
-    <div class="social-proof">
-      <div class="proof-dot" style="background:#22a05a"></div>
-      <div class="proof-text"><strong>12 Brisbane buyers</strong> got a Buyer's Brief this week</div>
-    </div>
-
-  </div>
-
-  <div class="scroll-indicator" onclick="document.getElementById('how').scrollIntoView({behavior:'smooth'})">
-    <span>How it works</span>
-    <span class="scroll-arrow">↓</span>
-  </div>
-</section>
-
-<!-- HOW IT WORKS -->
-<section class="how-section" id="how">
-  <div class="reveal">
-    <div class="section-eyebrow">How it works</div>
-    <h2 class="section-title">From address to insight<br>in under 60 seconds.</h2>
-    <p class="section-sub">No appointments. No callbacks. No $15,000 retainer. Just independent data.</p>
-  </div>
-
-  <div class="steps reveal">
-    <div class="step">
-      <div class="step-num">01</div>
-      <div class="step-title">Enter any Brisbane address</div>
-      <div class="step-desc">Get an instant free Scout Report — flood risk, zoning, comparable sales, and an AI-powered analysis of the property.</div>
-      <span class="step-tag tag-free">Free · Instant</span>
-    </div>
-    <div class="step">
-      <div class="step-num">02</div>
-      <div class="step-title">See what the data says</div>
-      <div class="step-desc">Flood risk, zoning overlays, comparable sales, and an AI verdict on whether the asking price is justified — before you commit to anything.</div>
-      <span class="step-tag tag-free">Free · 30 seconds</span>
-    </div>
-    <div class="step">
-      <div class="step-num">03</div>
-      <div class="step-title">Make a clear offer</div>
-      <div class="step-desc">Get the full Buyer's Brief with offer range, negotiation leverage, suburb outlook, and what the agent won't tell you.</div>
-      <span class="step-tag tag-paid">$149 · Instant delivery</span>
-    </div>
-  </div>
-</section>
-
-<!-- WHAT YOU GET -->
-<section class="what-section">
-  <div class="what-inner">
-    <div class="reveal">
-      <div class="section-eyebrow">The Buyer's Brief</div>
-      <h2 class="section-title">Everything in one<br>independent analysis.</h2>
-      <p class="section-sub" style="margin-bottom:0;">Minus the retainer, the conflict of interest, and the three-week wait.</p>
-    </div>
-
-    <div class="what-grid reveal">
-      <div class="what-card featured">
-        <div class="what-card-tag">Offer Strategy</div>
-        <div class="what-card-title">Specific offer range + opening position</div>
-        <div class="what-card-desc">Not "the market is strong." A specific dollar figure — opening offer, target settlement, walk-away price — backed by the comparable evidence.</div>
-      </div>
-      <div class="what-card featured">
-        <div class="what-card-tag">Flood Risk · Brisbane-specific</div>
-        <div class="what-card-title">Flood risk in plain English</div>
-        <div class="what-card-desc">Not just the BCC overlay flag. What Q100 mapping means for your insurance premiums, lender appetite, and resale value — post-2022 context included.</div>
-      </div>
-      <div class="what-card">
-        <div class="what-card-tag">Negotiating Leverage</div>
-        <div class="what-card-title">What the data gives you to work with</div>
-        <div class="what-card-desc">Days on market signal, vendor discount pattern, comparable supply, and exactly what to say to the agent when you table your offer.</div>
-      </div>
-      <div class="what-card">
-        <div class="what-card-tag">Suburb Outlook</div>
-        <div class="what-card-title">5–10 year outlook</div>
-        <div class="what-card-desc">Olympics infrastructure, Cross River Rail, rezoning risk, school catchment sustainability, and 10yr CAGR vs the Brisbane average.</div>
-      </div>
-      <div class="what-card">
-        <div class="what-card-tag">Agent Intelligence</div>
-        <div class="what-card-title">The agent's track record</div>
-        <div class="what-card-desc">The selling agent's average vendor discount and days on market history in this suburb. Know who you're negotiating with.</div>
-      </div>
-      <div class="what-card featured">
-        <div class="what-card-tag">The Uncomfortable Truth</div>
-        <div class="what-card-title">What the agent won't tell you</div>
-        <div class="what-card-desc">Written confidently from the data. The things that affect your decision that no one with a commission on the line will say out loud.</div>
+      <div id="search-error" style="margin-top:12px; display:none">
+        <div class="alert alert--error" id="search-error-msg"></div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- THE CASE -->
-<section class="case-section">
-  <div class="reveal">
-    <div class="section-eyebrow">The numbers</div>
-    <h2 class="section-title">You're making an<br>$800,000 decision.</h2>
-  </div>
+  <!-- ===== STAGE 1 — instant analysis (shown after search) ===== -->
+  <section id="stage1-section" style="display:none; padding-bottom: 60px;">
+    <div class="container">
 
-  <div class="case-grid reveal">
-    <div>
-      <div class="case-stat">
-        <div class="case-stat-value">$15K</div>
-        <div class="case-stat-label">What a Brisbane buyer's agent charges for the same research. Often more.</div>
+      <!-- Address header -->
+      <div style="margin-bottom: 24px;">
+        <h4>Analysing</h4>
+        <h2 id="stage1-address" style="color: var(--text); margin-top: 6px; font-size: clamp(18px, 3vw, 26px);"></h2>
       </div>
-      <div class="case-stat">
-        <div class="case-stat-value">2.8%</div>
-        <div class="case-stat-label">Average vendor discount in Chelmer. On an $800K property, that's $22,400 left on the table if you don't know to ask.</div>
+
+      <!-- Listing stats -->
+      <div class="stat-row" id="stat-row">
+        <div class="stat">
+          <div class="stat__value" id="stat-price">—</div>
+          <div class="stat__label">Listed price</div>
+        </div>
+        <div class="stat" id="stat-dom-wrap">
+          <div class="stat__value" id="stat-dom">—</div>
+          <div class="stat__label">Days on market</div>
+        </div>
+        <div class="stat">
+          <div class="stat__value" id="stat-suburb-median">—</div>
+          <div class="stat__label">Suburb median</div>
+        </div>
+        <div class="stat">
+          <div class="stat__value" id="stat-beds">—</div>
+          <div class="stat__label">Beds / Baths</div>
+        </div>
       </div>
-      <div class="case-stat">
-        <div class="case-stat-value">$149</div>
-        <div class="case-stat-label">What ClearOffer costs. Independent. No agenda. Works for you, not the vendor.</div>
+
+      <!-- One-line AI verdict -->
+      <div id="verdict-loading" style="text-align:center; padding: 24px 0;">
+        <div class="spinner"></div>
+        <p style="margin-top: 12px; font-size: 13px;">Getting market intelligence…</p>
+      </div>
+      <div id="verdict-wrap" style="display:none; margin-bottom: 24px;">
+        <div class="verdict">
+          <div class="verdict__label">Market Intelligence</div>
+          <div class="verdict__text" id="verdict-text"></div>
+        </div>
+      </div>
+
+      <!-- Teaser: locked sections visible below -->
+      <div id="teaser-sections" style="display:none;">
+        <div class="section-head">
+          <div class="section-head__title">Scout Report preview</div>
+          <div class="section-head__line"></div>
+        </div>
+
+        <div style="display: grid; gap: 10px; margin-bottom: 28px;">
+          <div class="locked">
+            <div class="locked__blur">Flood planning area R2A — high-medium hazard. River flood risk within BCC City Plan 2014 flood overlay. Check BCC FloodWise for more detail.</div>
+            <div class="locked__label">
+              <div class="locked__icon">🔒</div>
+              <div class="locked__title">Planning overlays — flood, bushfire, heritage, noise</div>
+            </div>
+          </div>
+          <div class="locked">
+            <div class="locked__blur">Primary school: Corinda State School (ICSEA 1072 — Above average). Secondary: Indooroopilly State High (ICSEA 1090).</div>
+            <div class="locked__label">
+              <div class="locked__icon">🔒</div>
+              <div class="locked__title">School catchment with ICSEA ranking</div>
+            </div>
+          </div>
+          <div class="locked">
+            <div class="locked__blur">AVM estimate: $1.18M–$1.31M based on 3 comparable sales in the past 90 days.</div>
+            <div class="locked__label">
+              <div class="locked__icon">🔒</div>
+              <div class="locked__title">AVM estimate range</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Email gate -->
+        <div class="email-gate" id="email-gate">
+          <h2 id="email-gate-heading">Your free Scout Report is ready.</h2>
+          <p id="email-gate-sub">Enter your email and we'll send it — and save it for you.</p>
+          <div class="email-form">
+            <input
+              type="email"
+              id="email-input"
+              class="email-input"
+              placeholder="your@email.com"
+              autocomplete="email"
+            >
+            <button class="btn btn--primary btn--full" id="email-submit-btn">
+              Get Your Free Scout Report
+            </button>
+          </div>
+          <div class="email-fine" id="email-gate-fine">One free Scout Report per email address. No spam.</div>
+          <div id="email-error" style="margin-top: 10px; display:none;">
+            <div class="alert alert--error" id="email-error-msg"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===== HOW IT WORKS ===== -->
+  <section style="padding: 60px 0; border-top: 1px solid var(--border-soft);" id="how-section">
+    <div class="container">
+      <div class="section-head">
+        <div class="section-head__title">How it works</div>
+        <div class="section-head__line"></div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-top: 8px;">
+        <div class="card">
+          <div style="font-size: 28px; margin-bottom: 14px;">🔍</div>
+          <h3 style="font-size: 18px; color: var(--text); margin-bottom: 8px;">Free Scout Report</h3>
+          <p style="font-size: 14px;">Planning overlays, school catchments, suburb data, AVM estimate range — delivered free, no credit card.</p>
+        </div>
+        <div class="card">
+          <div style="font-size: 28px; margin-bottom: 14px;">📊</div>
+          <h3 style="font-size: 18px; color: var(--text); margin-bottom: 8px;">Buyer's Brief — $149</h3>
+          <p style="font-size: 14px;">Full valuation, comparable sales, flood risk explained, offer recommendation with specific dollar figures.</p>
+        </div>
+        <div class="card">
+          <div style="font-size: 28px; margin-bottom: 14px;">💬</div>
+          <h3 style="font-size: 18px; color: var(--text); margin-bottom: 8px;">Negotiation script</h3>
+          <p style="font-size: 14px;">DOM signals, comparable gaps, active supply — your leverage, plainly stated. Opening offer recommendation.</p>
+        </div>
       </div>
     </div>
-    <div>
-      <div class="case-quote">
-        <div class="case-quote-text">"The agent told us the flood overlay was 'just a formality.' It wasn't. Our insurance quote came back at $6,200 a year."</div>
-        <div class="case-quote-attr">Brisbane buyer, Graceville — 2024</div>
-      </div>
-      <div style="margin-top: 20px; background: var(--navy-mid); border: 1px solid var(--border); padding: 20px;">
-        <div style="font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-dim); margin-bottom:8px;">ClearOffer is independent</div>
-        <div style="font-size:13.5px; color:var(--text-secondary); line-height:1.6;">We have no relationship with selling agents, developers, or property platforms. We are paid by buyers. That's the only way this works.</div>
-      </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <p id="footer-copy"></p>
+      <p style="margin-top: 6px;" id="footer-disclaimer"></p>
     </div>
-  </div>
-</section>
+  </footer>
 
-<!-- PRICING -->
-<section class="pricing-section" id="pricing">
-  <div class="pricing-inner">
-    <div class="reveal">
-      <div class="section-eyebrow" style="justify-content:center;">Pricing</div>
-      <h2 class="section-title">Simple. No subscription.</h2>
-      <p class="section-sub" style="margin:12px auto 0; max-width:400px;">Pay once per property. Most buyers look at 5–10 properties — get a Brief for the ones that matter.</p>
-    </div>
+  <script>
+    // ============================================================
+    // Landing page — address search + Stage 1 analysis
+    // ============================================================
 
-    <div class="pricing-card reveal">
-      <div class="pricing-compare">Buyer's agent equivalent: $15,000+</div>
-      <div class="pricing-amount">$149</div>
-      <div class="pricing-label">The research a buyer's agent would do. Instant. $149.</div>
+    const C = window.CLEAROFFER;
 
-      <div class="pricing-features">
-        <div class="pricing-feature">Specific offer range and opening position</div>
-        <div class="pricing-feature">Flood risk in plain English + insurance impact</div>
-        <div class="pricing-feature">Negotiating leverage from the data</div>
-        <div class="pricing-feature">5–10 year suburb outlook + Olympics effect</div>
-        <div class="pricing-feature">Agent track record in this suburb</div>
-        <div class="pricing-feature">What the agent won't tell you</div>
-        <div class="pricing-feature">Delivered instantly. Emailed as PDF. Stored 30 days.</div>
-      </div>
+    // Wire all product strings from config (rename-safe)
+    document.title = `${C.PRODUCT.NAME} — ${C.PRODUCT.TAGLINE}`;
+    document.querySelector('meta[property="og:title"]')?.setAttribute('content', `${C.PRODUCT.NAME} — ${C.PRODUCT.TAGLINE}`);
+    document.getElementById('nav-logo').childNodes[0].textContent = C.PRODUCT.NAME + ' ';
+    document.getElementById('footer-copy').innerHTML =
+      `© ${new Date().getFullYear()} ${C.PRODUCT.NAME} · <a href="mailto:${C.PRODUCT.SUPPORT_EMAIL}">${C.PRODUCT.SUPPORT_EMAIL}</a>`;
 
-      <button class="btn-hero" onclick="document.getElementById('addressInput').focus(); window.scrollTo({top:0,behavior:'smooth'})">
-        Enter an address to get started →
-      </button>
+    // Inject copy strings
+    document.getElementById('email-gate-heading').textContent = C.COPY.EMAIL_GATE_HEADING;
+    document.getElementById('email-gate-sub').textContent     = C.COPY.EMAIL_GATE_SUB;
+    document.getElementById('email-gate-fine').textContent    = C.COPY.EMAIL_GATE_FINE;
+    document.getElementById('footer-disclaimer').textContent  = C.COPY.DISCLAIMER;
 
-      <div class="pricing-disclaimer">
-        Free Scout Report included with every search. Scout Report is free — Buyer's Brief is $149.<br>
-        This report is market research, not a formal valuation. Always obtain independent legal advice before purchasing.
-      </div>
-    </div>
-  </div>
-</section>
+    // State
+    let selectedAddress = '';
+    let autocompleteTimer = null;
+    let suburbStats = null;
+    let listingData = null;
 
-<!-- FOOTER -->
-<footer>
-  <div class="footer-logo">ClearOffer</div>
-  <div class="footer-disclaimer">
-    Market research and analysis only. Not a formal property valuation. Not suitable for lending, legal, or insurance purposes. ClearOffer is not a registered property valuer. Brisbane-only at launch. Always obtain independent legal and financial advice before purchasing property.
-  </div>
-  <div class="footer-disclaimer" style="margin-top:8px;">© 2026 ClearOffer</div>
-</footer>
+    // ---- Autocomplete ----
+    const addressInput   = document.getElementById('address-input');
+    const autocompleteEl = document.getElementById('autocomplete-list');
 
-<script>
-  // ─── SCROLL REVEAL ───
-  const reveals = document.querySelectorAll('.reveal');
-  const revealObserver = new IntersectionObserver((entries) => {
-    entries.forEach((entry, i) => {
-      if (entry.isIntersecting) {
-        setTimeout(() => entry.target.classList.add('visible'), i * 80);
-      }
+    addressInput.addEventListener('input', () => {
+      clearTimeout(autocompleteTimer);
+      const q = addressInput.value.trim();
+      if (q.length < 3) { hideAutocomplete(); return; }
+      autocompleteTimer = setTimeout(() => fetchSuggestions(q), 280);
     });
-  }, { threshold: 0.1 });
-  reveals.forEach(el => revealObserver.observe(el));
 
-  // ─── ADDRESS SEARCH ───
-  let selectedProperty = null;
-  let debounceTimer = null;
+    addressInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); submitSearch(); }
+    });
 
-  function handleInput(value) {
-    clearTimeout(debounceTimer);
-    selectedProperty = null;
+    document.addEventListener('click', e => {
+      if (!e.target.closest('.search-wrap')) hideAutocomplete();
+    });
 
-    if (value.length < 3) {
-      hideDropdown();
-      return;
+    async function fetchSuggestions(q) {
+      try {
+        const resp = await fetch(`/api/autocomplete?q=${encodeURIComponent(q)}`);
+        const { suggestions } = await resp.json();
+        renderAutocomplete(suggestions || []);
+      } catch { hideAutocomplete(); }
     }
 
-    debounceTimer = setTimeout(() => fetchSuggestions(value), 300);
-  }
-
-  function handleKey(e) {
-    if (e.key === 'Enter') handleSearch();
-  }
-
-  async function fetchSuggestions(query) {
-    try {
-      const res = await fetch(`/api/property-lookup?terms=${encodeURIComponent(query)}`);
-      const suggestions = await res.json();
-      showDropdown(suggestions);
-    } catch {
-      // Fail silently — user can still type and submit
-    }
-  }
-
-  function showDropdown(suggestions) {
-    const dropdown = document.getElementById('dropdown');
-    if (!suggestions.length) {
-      hideDropdown();
-      return;
+    function renderAutocomplete(items) {
+      if (!items.length) { hideAutocomplete(); return; }
+      autocompleteEl.innerHTML = '';
+      items.slice(0, 6).forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'autocomplete-item';
+        div.textContent = item.description;
+        div.addEventListener('click', () => {
+          addressInput.value = item.description;
+          selectedAddress = item.description;
+          hideAutocomplete();
+          submitSearch();
+        });
+        autocompleteEl.appendChild(div);
+      });
+      autocompleteEl.classList.add('visible');
     }
 
-    dropdown.innerHTML = suggestions.map(s => `
-      <div class="autocomplete-item" onclick="selectSuggestion(${JSON.stringify(s).replace(/"/g, '&quot;')})">
-        <div class="autocomplete-icon">📍</div>
-        <div class="autocomplete-address">${s.address}</div>
-        <div class="autocomplete-suburb">${s.suburb}</div>
-      </div>
-    `).join('');
+    function hideAutocomplete() { autocompleteEl.classList.remove('visible'); }
 
-    dropdown.classList.add('visible');
-  }
+    // ---- Search ----
+    document.getElementById('search-btn').addEventListener('click', submitSearch);
 
-  function hideDropdown() {
-    document.getElementById('dropdown').classList.remove('visible');
-  }
+    async function submitSearch() {
+      const addr = (selectedAddress || addressInput.value).trim();
+      if (!addr || addr.length < 5) {
+        showSearchError('Please enter a full property address.');
+        return;
+      }
+      selectedAddress = addr;
+      hideAutocomplete();
+      hideSearchError();
+      showStage1(addr);
+    }
 
-  function selectSuggestion(property) {
-    selectedProperty = property;
-    document.getElementById('addressInput').value = property.address;
-    hideDropdown();
-  }
+    async function showStage1(address) {
+      // Show stage 1 section
+      document.getElementById('stage1-section').style.display = 'block';
+      document.getElementById('stage1-address').textContent = address;
+      document.getElementById('verdict-loading').style.display = 'block';
+      document.getElementById('verdict-wrap').style.display = 'none';
+      document.getElementById('teaser-sections').style.display = 'none';
 
-  function handleSearch() {
-    const input = document.getElementById('addressInput').value.trim();
-    if (!input) return;
+      // Scroll to stage 1
+      document.getElementById('stage1-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-    const address = selectedProperty?.address || input;
-    const lat = selectedProperty?.lat || '';
-    const lng = selectedProperty?.lng || '';
-    window.location.href = `/scout-report.html?address=${encodeURIComponent(address)}&lat=${lat}&lng=${lng}`;
-  }
+      // Fetch suburb stats + listing data in parallel
+      const [stats] = await Promise.all([
+        fetchSuburbStats(address),
+        // TODO: fetch Domain listing data when API approved
+        // fetchListingData(address),
+      ]);
+      suburbStats = stats;
 
-  // Close dropdown on outside click
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('.search-wrap')) hideDropdown();
-  });
-</script>
+      // Populate stats row with what we have
+      populateStats({ address, stats });
+
+      // Fetch verdict from Claude
+      try {
+        const verdictResp = await fetch('/api/verdict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            address,
+            listingPrice: listingData?.price || null,
+            daysOnMarket: listingData?.daysOnMarket || null,
+            floodCode: null, // will come from ZoneIQ in Stage 2
+          }),
+        });
+        const { verdict } = await verdictResp.json();
+        document.getElementById('verdict-text').textContent = verdict;
+      } catch {
+        document.getElementById('verdict-text').textContent =
+          'Get the full picture on this property before you make an offer.';
+      }
+
+      document.getElementById('verdict-loading').style.display = 'none';
+      document.getElementById('verdict-wrap').style.display = 'block';
+      document.getElementById('teaser-sections').style.display = 'block';
+
+      // Wire email submit
+      document.getElementById('email-submit-btn').onclick = submitEmail;
+      document.getElementById('email-input').addEventListener('keydown', e => {
+        if (e.key === 'Enter') submitEmail();
+      });
+    }
+
+    async function fetchSuburbStats(address) {
+      try {
+        const resp = await fetch(`/api/suburb-stats?address=${encodeURIComponent(address)}`);
+        return await resp.json();
+      } catch { return null; }
+    }
+
+    function populateStats({ address, stats }) {
+      // Price — stub until Domain API live
+      document.getElementById('stat-price').textContent = listingData?.priceDisplay || 'See listing';
+      // DOM
+      if (listingData?.daysOnMarket != null) {
+        const dom = listingData.daysOnMarket;
+        const subDom = stats?.dom;
+        const domEl = document.getElementById('stat-dom');
+        domEl.textContent = `${dom}d`;
+        const wrap = document.getElementById('stat-dom-wrap');
+        if (subDom && dom > subDom * 1.4) wrap.classList.add('stat--alert');
+        if (subDom && dom < subDom * 0.6) wrap.classList.add('stat--good');
+      } else {
+        document.getElementById('stat-dom').textContent = '—';
+      }
+      // Suburb median
+      document.getElementById('stat-suburb-median').textContent = stats?.median
+        ? formatPrice(stats.median) : '—';
+      // Beds/baths
+      document.getElementById('stat-beds').textContent = listingData
+        ? `${listingData.beds || '?'}/${listingData.baths || '?'}`
+        : '—';
+    }
+
+    // ---- Email gate ----
+    async function submitEmail() {
+      const email = document.getElementById('email-input').value.trim();
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showEmailError('Please enter a valid email address.');
+        return;
+      }
+      const btn = document.getElementById('email-submit-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;"></div> Generating…';
+
+      try {
+        const resp = await fetch('/api/submit-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, address: selectedAddress }),
+        });
+        const data = await resp.json();
+
+        if (data.status === 'already_used') {
+          // Redirect to upsell
+          window.location.href = `/report.html?address=${encodeURIComponent(selectedAddress)}&email=${encodeURIComponent(email)}&upsell=1`;
+          return;
+        }
+
+        if (data.status === 'ok') {
+          // Persist email so success.html can pass it to buyers-brief.html
+          try { sessionStorage.setItem('co_email', email); } catch {}
+          // Redirect to full Scout Report
+          window.location.href = `/report.html?address=${encodeURIComponent(selectedAddress)}&email=${encodeURIComponent(email)}`;
+          return;
+        }
+
+        showEmailError('Something went wrong. Please try again.');
+        btn.disabled = false;
+        btn.textContent = C.COPY.CTA_PRIMARY;
+      } catch {
+        showEmailError('Something went wrong. Please try again.');
+        btn.disabled = false;
+        btn.textContent = C.COPY.CTA_PRIMARY;
+      }
+    }
+
+    // ---- Helpers ----
+    function formatPrice(n) {
+      if (!n) return '—';
+      if (n >= 1000000) return `$${(n/1000000).toFixed(n % 1000000 === 0 ? 0 : 1)}M`;
+      return `$${(n/1000).toFixed(0)}K`;
+    }
+    function showSearchError(msg) {
+      document.getElementById('search-error-msg').textContent = msg;
+      document.getElementById('search-error').style.display = 'block';
+    }
+    function hideSearchError() { document.getElementById('search-error').style.display = 'none'; }
+    function showEmailError(msg) {
+      document.getElementById('email-error-msg').textContent = msg;
+      document.getElementById('email-error').style.display = 'block';
+    }
+  </script>
 
 </body>
 </html>
