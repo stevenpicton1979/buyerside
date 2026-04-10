@@ -21,7 +21,18 @@ try {
 
 function getICSEA(schoolName) {
   if (!schoolName) return null;
-  return icseaScores[schoolName.toLowerCase()] || null;
+  const key = schoolName.toLowerCase();
+  if (icseaScores[key]) return icseaScores[key];
+
+  // Expand common ZoneIQ abbreviations and retry
+  // e.g. "Belmont SS" → "belmont state school"
+  const expanded = key
+    .replace(/\bss\b/g, 'state school')
+    .replace(/\bshs\b/g, 'state high school')
+    .replace(/\bsc\b/g, 'state college')
+    .replace(/\bps\b/g, 'primary school')
+    .replace(/\bhs\b/g, 'high school');
+  return icseaScores[expanded] || null;
 }
 
 module.exports = async function handler(req, res) {
@@ -167,9 +178,17 @@ function parseAddress(address) {
   const numMatch = clean.match(/^(\d+)/);
   const houseNumber = numMatch?.[1] || null;
 
-  // Extract suburb — last meaningful token before postcode or state
-  const suburbMatch = clean.match(/,\s*([^,]+?)\s*(?:QLD|NSW|VIC|SA|WA|TAS|ACT|NT)?\s*\d{4}?\s*$/i);
-  const suburb = suburbMatch?.[1]?.trim().toUpperCase() || null;
+  // Extract suburb — supports both formats:
+  //   Format 1 (Google Places): "6 Glenheaton Court, Carindale QLD 4152"  — comma before suburb
+  //   Format 2 (URL-decoded):   "6 Glenheaton Ct Carindale QLD 4152"      — no comma, suburb after street type
+  let suburb = null;
+  const suburbComma = clean.match(/,\s*([^,]+?)\s*(?:QLD|NSW|VIC|SA|WA|TAS|ACT|NT)?\s*\d{4}?\s*$/i);
+  if (suburbComma) {
+    suburb = suburbComma[1].trim().toUpperCase();
+  } else {
+    const suburbNoComma = clean.match(/(?:St|Street|Rd|Road|Ave|Avenue|Ct|Court|Dr|Drive|Pl|Place|Cres|Crescent|Way|Tce|Terrace|Blvd|Boulevard|Ln|Lane|Hwy|Highway|Esp|Esplanade|Pde|Parade|Mews|Close)\s+([A-Za-z][A-Za-z ]+?)\s*(?:QLD|NSW|VIC|SA|WA|TAS|ACT|NT)?\s*\d{4}?\s*$/i);
+    if (suburbNoComma) suburb = suburbNoComma[1].trim().toUpperCase();
+  }
 
   // Extract street name — first word(s) after house number, before comma
   const streetMatch = clean.match(/^\d+\s+([^,]+?)(?:\s+(?:St|Street|Rd|Road|Ave|Avenue|Ct|Court|Dr|Drive|Pl|Place|Cres|Crescent|Way|Tce|Terrace|Blvd|Boulevard|Ln|Lane)\b.*?)?(?:,|$)/i);
