@@ -67,6 +67,11 @@ async function generateVerdict({ address, listingPrice, daysOnMarket, floodCode 
     contextParts.push(`flood overlay present (${floodCode})`);
   }
 
+  // When no listing price, surface the suburb median so Claude always has a number to anchor on
+  if (!listingPrice && suburbMedian) {
+    contextParts.push(`suburb median is ${formatPrice(suburbMedian)}`);
+  }
+
   if (suburb) contextParts.push(`suburb: ${suburb}, Brisbane`);
 
   const context = contextParts.length > 0

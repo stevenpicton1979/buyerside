@@ -9,6 +9,7 @@
 // ============================================================
 
 const { handleCors, PRODUCT, PRICING, getSuburbStats, supabaseFetch, BASE_URL } = require('./config');
+const { getDevFixture } = require('./dev-comparables-fixture');
 
 module.exports = async function handler(req, res) {
   if (handleCors(req, res)) return;
@@ -185,13 +186,17 @@ async function fetchSuburbStats(address) {
 // ============================================================
 async function fetchPropTechData(address) {
   if (!process.env.PROPTECH_DATA_API_KEY) {
-    console.log('[buyers-brief] PropTechData API key not set — using stubs');
+    const fixture = getDevFixture(address);
+    if (fixture) {
+      console.log('[buyers-brief] PropTechData not set — using dev fixture for', address);
+      return fixture;
+    }
+    console.log('[buyers-brief] PropTechData not set — no fixture for this suburb, returning null');
     return getPropTechStub();
   }
-  // TODO: implement real PropTechData calls
-  // For now, return stub even if key present (safety until terms confirmed)
+  // TODO: implement real PropTechData calls (Sprint 10)
   console.log('[buyers-brief] PropTechData key present but real calls not yet implemented');
-  return getPropTechStub(address);
+  return getPropTechStub();
 }
 
 function getPropTechStub() {

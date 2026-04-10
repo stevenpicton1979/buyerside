@@ -290,8 +290,9 @@
         div.className = 'autocomplete-item';
         div.textContent = item.description;
         div.addEventListener('click', () => {
-          addressInput.value = item.description;
-          selectedAddress = item.description;
+          const clean = item.description.replace(/,\s*(?:(?:QLD|NSW|VIC|ACT|SA|WA|TAS|NT),\s*)?Australia\s*$/i, '').trim();
+          addressInput.value = clean;
+          selectedAddress = clean;
           hideAutocomplete();
           addressInput.blur(); // dismiss keyboard on mobile
           submitSearch();

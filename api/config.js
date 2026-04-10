@@ -146,7 +146,7 @@ const SUBURB_STATS = {
   'Bowen Hills':   { median: 850000,  dom: 22, growth12m: 0.11, cagr10yr: 0.070, clearance: 0.72 },
   'Brisbane City': { median: 820000,  dom: 20, growth12m: 0.11, cagr10yr: 0.071, clearance: 0.73 },
   'Bulwer':        { median: 780000,  dom: 30, growth12m: 0.07, cagr10yr: 0.061, clearance: 0.65 },
-  'Carindale':     { median: 980000,  dom: 22, growth12m: 0.11, cagr10yr: 0.073, clearance: 0.74 },
+  'Carindale':     { median: 1700000, dom: 26, growth12m: 0.087, cagr10yr: 0.062, clearance: 0.74 },
   'Carseldine':    { median: 860000,  dom: 20, growth12m: 0.12, cagr10yr: 0.076, clearance: 0.76 },
   'Chapel Hill':   { median: 1150000, dom: 27, growth12m: 0.09, cagr10yr: 0.068, clearance: 0.70 },
   'Chermside':     { median: 820000,  dom: 19, growth12m: 0.13, cagr10yr: 0.079, clearance: 0.77 },
@@ -213,11 +213,13 @@ const SUBURB_STATS = {
 // Fuzzy suburb lookup — strips QLD/Brisbane/etc suffix
 function getSuburbStats(address) {
   if (!address) return null;
+  // Strip Google Places trailing suffixes: ", QLD, Australia" or ", Australia"
+  address = address.replace(/,\s*(?:(?:QLD|NSW|VIC|ACT|SA|WA|TAS|NT),\s*)?Australia\s*$/i, '').trim();
   // Try to extract suburb from address string
   // "14 Riverview Tce, Chelmer QLD 4068" → "Chelmer"
   const parts = address.split(',').map(s => s.trim());
   for (const part of parts) {
-    const suburb = part.replace(/\s+(QLD|NSW|VIC|ACT|SA|WA|TAS|NT)\s*\d{4}/i, '').trim();
+    const suburb = part.replace(/\s+(QLD|NSW|VIC|ACT|SA|WA|TAS|NT)\s*\d{0,4}/i, '').trim();
     if (SUBURB_STATS[suburb]) return { suburb, ...SUBURB_STATS[suburb] };
   }
   // Fallback: scan all words
