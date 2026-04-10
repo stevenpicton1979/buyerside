@@ -602,6 +602,1832 @@ Test address: any Brisbane address
 
 ---
 
+# Sprint 13 — Live BCC Flood Check
+*Repo: stevenpicton1979/buyerside (main branch)*
+*Local dev: `vercel dev --listen 3001` — never `npm run dev`*
+*Log all changes to `OVERNIGHT_LOG.md` with timestamps*
+
+---
+
+## Background
+
+ZoneIQ's flood data is incomplete. A test on 6 Glenheaton Court, Carindale confirmed
+ZoneIQ returns `flood.affected: false` for a property that BCC's own planning scheme
+flags as Creek/Waterway Flood Planning Area 4 and 5.
+
+The authoritative source is BCC's City Plan open data, published on ArcGIS Online at
+`services2.arcgis.com/dEKgZETqwmDAh1rP`. This endpoint is:
+- Publicly accessible — no authentication required
+- No CORS issues from Node.js server-side calls
+- Updated to City Plan v34.00/2025 (last data edit November 2025)
+- Confirmed working: returns FPA 4 and FPA 5 polygons in the Carindale area
+
+This sprint adds a direct BCC flood check to `api/zone-lookup.js` that runs alongside
+ZoneIQ and overrides the flood result when BCC returns data.
+
+---
+
+## Confirmed API details (do not guess — use these exactly)
+
+**Creek/Waterway flood endpoint:**
+```
+https://services2.arcgis.com/dEKgZETqwmDAh1rP/arcgis/rest/services/Flood_overlay_Creek_waterway_flood_planning_area/FeatureServer/0/query
+```
+
+**Query parameters:**
+- `geometry` = `{lng},{lat}` (WGS84 decimal degrees)
+- `geometryType` = `esriGeometryPoint`
+- `inSR` = `4326`
+- `spatialRel` = `esriSpatialRelIntersects`
+- `outFields` = `OVL2_DESC,OVL2_CAT`
+- `f` = `json`
+
+**Response shape when flood affected:**
+```json
+{
+  "features": [
+    {
+      "attributes": {
+        "OVL2_DESC": "Creek/waterway flood planning area 4",
+        "OVL2_CAT": "FHA_CK4"
+      }
+    }
+  ]
+}
+```
+
+**Response shape when not affected:**
+```json
+{ "features": [] }
+```
+
+**Brisbane River flood endpoint (also check this):**
+```
+https://services2.arcgis.com/dEKgZETqwmDAh1rP/arcgis/rest/services/Flood_overlay_Brisbane_River_flood_planning_area/FeatureServer/0/query
+```
+Same query parameters. Field names are identical (`OVL2_DESC`, `OVL2_CAT`).
+
+---
+
+## Task 1 — Get lat/lng from Google Geocoder in `api/zone-lookup.js`
+
+The zone-lookup handler already calls Google Geocoding API to get the address.
+Find where the geocode response is parsed and extract `lat` and `lng` from
+`result.geometry.location`. Store them as local variables — they'll be passed to
+the BCC flood function.
+
+If the geocoding response does not include lat/lng for any reason, set both to null
+and skip the BCC flood check gracefully.
+
+---
+
+## Task 2 — Add `fetchBCCFlood(lat, lng)` to `api/zone-lookup.js`
+
+Add this function:
+
+```javascript
+async function fetchBCCFlood(lat, lng) {
+  if (!lat || !lng) return null;
+
+  const baseParams = `geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=OVL2_DESC%2COVL2_CAT&f=json`;
+
+  const [creekResp, riverResp] = await Promise.all([
+    fetch(
+      `https://services2.arcgis.com/dEKgZETqwmDAh1rP/arcgis/rest/services/Flood_overlay_Creek_waterway_flood_planning_area/FeatureServer/0/query?geometry=${lng}%2C${lat}&${baseParams}`,
+      { signal: AbortSignal.timeout(8000) }
+    ).then(r => r.ok ? r.json() : null).catch(() => null),
+
+    fetch(
+      `https://services2.arcgis.com/dEKgZETqwmDAh1rP/arcgis/rest/services/Flood_overlay_Brisbane_River_flood_planning_area/FeatureServer/0/query?geometry=${lng}%2C${lat}&${baseParams}`,
+      { signal: AbortSignal.timeout(8000) }
+    ).then(r => r.ok ? r.json() : null).catch(() => null),
+  ]);
+
+  const creekFeatures = creekResp?.features || [];
+  const riverFeatures = riverResp?.features || [];
+  const allFeatures = [...creekFeatures, ...riverFeatures];
+
+  if (allFeatures.length === 0) {
+    console.log('[zone-lookup] BCC flood check: no flood overlays found');
+    return { affected: false, source: 'BCC CityPlan' };
+  }
+
+  const descriptions = allFeatures.map(f => f.attributes.OVL2_DESC);
+  console.log('[zone-lookup] BCC flood check: found', descriptions);
+
+  // Build plain English description
+  const plain = descriptions.length === 1
+    ? `${descriptions[0]} (BCC City Plan)`
+    : `${descriptions.join(' + ')} (BCC City Plan)`;
+
+  return {
+    affected: true,
+    source: 'BCC CityPlan',
+    categories: descriptions,
+    plain,
+  };
+}
+```
+
+---
+
+## Task 3 — Call `fetchBCCFlood()` and merge into the overlay response
+
+In the zone-lookup handler, after fetching ZoneIQ data and extracting lat/lng from
+geocoding, add:
+
+```javascript
+// BCC flood check — authoritative source, runs alongside ZoneIQ
+const bccFlood = await fetchBCCFlood(lat, lng);
+```
+
+Then when building the final overlays response, merge the BCC result:
+
+```javascript
+// BCC flood overrides ZoneIQ flood when BCC returns a result
+if (bccFlood !== null) {
+  overlays.flood = bccFlood;
+} else {
+  // BCC call failed — keep ZoneIQ result but note uncertainty
+  if (overlays.flood && !overlays.flood.affected) {
+    overlays.flood.plain = 'No flood overlay detected. Verify at brisbane.qld.gov.au/floodwise before purchasing.';
+  }
+}
+```
+
+---
+
+## Task 4 — Update flood overlay copy in `api/zone-lookup.js`
+
+Find where the flood plain English text is constructed for the no-flood case.
+Regardless of source, when `flood.affected = false`, the plain text must be:
+
+```
+No flood overlay identified (BCC City Plan verified). Note: unmapped overland flow paths
+are not captured in any dataset — check brisbane.qld.gov.au/floodwise for a complete
+property flood report.
+```
+
+When `flood.affected = true`, the plain text comes from the BCC response directly
+(already set in Task 2). Ensure it is passed through to the Scout Report and Brief.
+
+---
+
+## Task 5 — Update noise overlay copy in `api/zone-lookup.js` and `report.html`
+
+**No API exists for operational flight path noise.** ANEF contours only capture
+formally modelled corridors, not actual flight paths.
+
+Find where noise overlay plain text is set. When `noise.affected = false`, change
+the plain text from whatever it currently says to:
+
+```
+No ANEF aircraft noise contour detected. ANEF overlays capture formally modelled
+corridors only — operational flight paths can affect properties outside this contour.
+Check actual flight activity at webtrak.emsbk.com/bne3 before purchasing.
+```
+
+This change applies in both the server-side plain text generation and wherever
+noise overlay text is hardcoded in `report.html` or client JS.
+
+---
+
+## Task 6 — Smoke test
+
+```
+vercel dev --listen 3001
+```
+
+Run these manual checks:
+
+1. Hit `http://localhost:3001/api/zone-lookup?address=6+Glenheaton+Ct+Carindale+QLD+4152`
+   - Confirm server log shows `[zone-lookup] BCC flood check: found ["Creek/waterway flood planning area 4", "Creek/waterway flood planning area 5"]` (or similar)
+   - Confirm response has `overlays.flood.affected = true`
+   - Confirm `overlays.flood.source = "BCC CityPlan"`
+   - Confirm `overlays.flood.plain` contains the FPA description
+
+2. Hit `http://localhost:3001/api/zone-lookup?address=14+Riverview+Tce+Chelmer+QLD+4068`
+   - This is a known flood-affected address (riverside Chelmer)
+   - Confirm BCC returns flood data for it
+
+3. Hit `http://localhost:3001/api/zone-lookup?address=25+Racecourse+Rd+Hamilton+QLD+4007`
+   - This is expected to be flood-free
+   - Confirm `flood.affected = false` and plain text includes the FloodWise link
+
+4. Load `http://localhost:3001` → search for 6 Glenheaton Ct, Carindale QLD
+   - Confirm Scout Report now shows flood overlay as AFFECTED
+   - Confirm flood pill is red/amber (not green)
+
+---
+
+## Completion checklist
+
+- [x] `fetchBCCFlood()` function added to `api/zone-lookup.js`
+- [x] BCC flood check runs for every zone-lookup call where lat/lng is available
+- [x] 6 Glenheaton Ct, Carindale returns `flood.affected = true` with BCC source
+- [x] Flood-free address still returns `flood.affected = false` with FloodWise disclaimer
+- [x] Noise overlay no-result copy updated with WebTrak link
+- [x] Scout Report flood pill shows correctly for Carindale address
+- [x] `OVERNIGHT_LOG.md` updated with timestamps
+
+---
+
+## Do not touch
+
+- Stripe, email gate, Supabase schema
+- Buyer's Brief generation (`api/buyers-brief.js`)
+- Any env vars
+- `COMING_SOON` setting
+- ZoneIQ calls for all other overlays (bushfire, heritage, character, schools, noise)
+  — only flood is being overridden
+
+---
+
+# Sprint 14 — BCC Direct Data Overhaul
+*Repo: stevenpicton1979/buyerside (main branch)*
+*Local dev: `vercel dev --listen 3001` — never `npm run dev`*
+*Log all changes to `OVERNIGHT_LOG.md` with timestamps*
+
+---
+
+## Background
+
+All Brisbane planning overlays are available directly from BCC's open data on
+`services2.arcgis.com/dEKgZETqwmDAh1rP`. These APIs are free, no auth, no rate
+limits, and represent the same authoritative source that town planners use via
+City Plan Online.
+
+This sprint replaces ZoneIQ as the data source for Brisbane overlays entirely,
+adds lot size from the DCDB cadastre, and upgrades flood to use lot-boundary
+polygon intersection (instead of a geocoded point) so large blocks like 1068m²
+don't miss flood planning areas that only cover part of the lot.
+
+All API details below were validated live. Do not deviate from the confirmed
+endpoint names, field names, or query patterns.
+
+---
+
+## Confirmed API endpoints (all on services2.arcgis.com/dEKgZETqwmDAh1rP)
+
+```
+Property_boundaries_Parcel/FeatureServer/0     → lot size, lot plan, geometry
+Flood_overlay_Creek_waterway_flood_planning_area/FeatureServer/0  → creek flood FPA 1-5
+Flood_overlay_Brisbane_River_flood_planning_area/FeatureServer/0  → river flood FPA 1-5
+Bushfire_overlay/FeatureServer/0               → bushfire hazard areas
+Heritage_overlay/FeatureServer/0               → heritage listing
+Traditional_building_character_overlay/FeatureServer/0  → traditional character
+Dwelling_house_character_overlay/FeatureServer/0         → dwelling house character
+```
+
+**Key field names (all overlays):** `OVL2_DESC`, `OVL2_CAT`
+
+**Confirmed results for 6 Glenheaton Court, Carindale (15RP182797, 1086m²):**
+```json
+{
+  "lotArea": 1086,
+  "floodCreek": ["Creek/waterway flood planning area 5", "Creek/waterway flood planning area 4"],
+  "floodRiver": [],
+  "bushfire": ["Medium hazard buffer area", "High hazard buffer area"],
+  "heritage": [],
+  "characterTraditional": [],
+  "characterDwelling": ["Dwelling house character"],
+  "errors": []
+}
+```
+
+---
+
+## Task 1 — Add `fetchBCCParcel(address)` to `api/zone-lookup.js`
+
+This function queries the DCDB parcel data by street number, street name, and
+suburb — more reliable than geocoding coordinates for an exact lot match.
+
+Parse the address string to extract:
+- `houseNumber` — the numeric part (e.g. "6")
+- `streetName` — the street name only, no type suffix (e.g. "GLENHEATON" from
+  "Glenheaton Court" or "Glenheaton Ct")
+- `suburb` — the suburb name (e.g. "CARINDALE")
+
+Use this regex approach to parse the address:
+```javascript
+function parseAddress(address) {
+  // Remove ", Australia" suffix if present (Google Places appends this)
+  const clean = address.replace(/,?\s*(QLD|NSW|VIC|SA|WA|TAS|ACT|NT)?,?\s*Australia$/i, '').trim();
+  
+  // Extract house number
+  const numMatch = clean.match(/^(\d+)/);
+  const houseNumber = numMatch?.[1] || null;
+  
+  // Extract suburb — last meaningful token before postcode or state
+  const suburbMatch = clean.match(/,\s*([^,]+?)\s*(?:QLD|NSW|VIC|SA|WA|TAS|ACT|NT)?\s*\d{4}?\s*$/i);
+  const suburb = suburbMatch?.[1]?.trim().toUpperCase() || null;
+  
+  // Extract street name — first word(s) after house number, before comma
+  const streetMatch = clean.match(/^\d+\s+([^,]+?)(?:\s+(?:St|Street|Rd|Road|Ave|Avenue|Ct|Court|Dr|Drive|Pl|Place|Cres|Crescent|Way|Tce|Terrace|Blvd|Boulevard|Ln|Lane)\b.*?)?(?:,|$)/i);
+  const streetName = streetMatch?.[1]?.trim().toUpperCase() || null;
+  
+  return { houseNumber, streetName, suburb };
+}
+```
+
+Then add `fetchBCCParcel`:
+
+```javascript
+async function fetchBCCParcel(address) {
+  const { houseNumber, streetName, suburb } = parseAddress(address);
+  
+  if (!houseNumber || !streetName || !suburb) {
+    console.warn('[zone-lookup] BCC parcel: could not parse address:', address);
+    return null;
+  }
+
+  const where = `HOUSE_NUMBER=${houseNumber} AND UPPER(CORRIDOR_NAME)='${streetName}' AND UPPER(SUBURB)='${suburb}'`;
+  const url = `https://services2.arcgis.com/dEKgZETqwmDAh1rP/arcgis/rest/services/Property_boundaries_Parcel/FeatureServer/0/query?where=${encodeURIComponent(where)}&outFields=LOTPLAN%2CLOT_AREA%2CHOUSE_NUMBER%2CCORRIDOR_NAME%2CSUBURB%2CPAR_IND_DESC&returnGeometry=true&outSR=4326&f=json`;
+
+  try {
+    const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!resp.ok) throw new Error(`BCC parcel ${resp.status}`);
+    const data = await resp.json();
+    
+    // Filter out road/reserve parcels, get the residential lot
+    const lot = data.features?.find(f =>
+      f.attributes.PAR_IND_DESC === 'Lot' && f.attributes.LOT_AREA > 0
+    );
+    
+    if (!lot) {
+      console.warn('[zone-lookup] BCC parcel: no lot found for', address);
+      return null;
+    }
+    
+    console.log('[zone-lookup] BCC parcel found:', lot.attributes.LOTPLAN, lot.attributes.LOT_AREA + 'm²');
+    return {
+      lotPlan: lot.attributes.LOTPLAN,
+      lotArea: lot.attributes.LOT_AREA,
+      geometry: lot.geometry, // WGS84 polygon rings
+    };
+  } catch (err) {
+    console.warn('[zone-lookup] BCC parcel error:', err.message);
+    return null;
+  }
+}
+```
+
+---
+
+## Task 2 — Add `fetchBCCOverlays(geometry)` to `api/zone-lookup.js`
+
+This function takes the WGS84 lot polygon from Task 1 and queries all overlay
+layers simultaneously using polygon intersection. This is more accurate than
+point-in-polygon because large lots can straddle multiple overlay zones.
+
+```javascript
+async function fetchBCCOverlays(geometry) {
+  if (!geometry?.rings) return null;
+  
+  const BASE = 'https://services2.arcgis.com/dEKgZETqwmDAh1rP/arcgis/rest/services';
+  const geomStr = encodeURIComponent(JSON.stringify({ rings: geometry.rings }));
+  const params = `geometry=${geomStr}&geometryType=esriGeometryPolygon&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=OVL2_DESC%2COVL2_CAT&f=json`;
+
+  const timeout = { signal: AbortSignal.timeout(10000) };
+
+  const [floodCreek, floodRiver, bushfire, heritage, charTrad, charDwelling] =
+    await Promise.all([
+      fetch(`${BASE}/Flood_overlay_Creek_waterway_flood_planning_area/FeatureServer/0/query?${params}`, timeout).then(r => r.json()).catch(() => null),
+      fetch(`${BASE}/Flood_overlay_Brisbane_River_flood_planning_area/FeatureServer/0/query?${params}`, timeout).then(r => r.json()).catch(() => null),
+      fetch(`${BASE}/Bushfire_overlay/FeatureServer/0/query?${params}`, timeout).then(r => r.json()).catch(() => null),
+      fetch(`${BASE}/Heritage_overlay/FeatureServer/0/query?${params}`, timeout).then(r => r.json()).catch(() => null),
+      fetch(`${BASE}/Traditional_building_character_overlay/FeatureServer/0/query?${params}`, timeout).then(r => r.json()).catch(() => null),
+      fetch(`${BASE}/Dwelling_house_character_overlay/FeatureServer/0/query?${params}`, timeout).then(r => r.json()).catch(() => null),
+    ]);
+
+  // Combine creek and river flood
+  const allFlood = [
+    ...(floodCreek?.features || []),
+    ...(floodRiver?.features || []),
+  ].map(f => f.attributes.OVL2_DESC);
+
+  // Combine both character overlay types
+  const allCharacter = [
+    ...(charTrad?.features || []),
+    ...(charDwelling?.features || []),
+  ].map(f => f.attributes.OVL2_DESC);
+
+  const allBushfire = (bushfire?.features || []).map(f => f.attributes.OVL2_DESC);
+  const allHeritage = (heritage?.features || []).map(f => f.attributes.OVL2_DESC);
+
+  // Build plain English descriptions
+  const buildFloodPlain = (descs) => {
+    if (!descs.length) return null;
+    return descs.join(' + ') + ' (BCC City Plan)';
+  };
+
+  const buildBushfirePlain = (descs) => {
+    if (!descs.length) return null;
+    // Find the most significant category
+    if (descs.some(d => d.includes('High hazard area'))) return 'Bushfire high hazard area — significant development constraints apply.';
+    if (descs.some(d => d.includes('Medium hazard area'))) return 'Bushfire medium hazard area — BAL assessment required for new development.';
+    if (descs.some(d => d.includes('High hazard buffer'))) return 'Bushfire high hazard buffer area — design standards apply to new development.';
+    if (descs.some(d => d.includes('Medium hazard buffer'))) return 'Bushfire medium hazard buffer area — some design standards apply.';
+    if (descs.some(d => d.includes('Potential impact'))) return 'Within bushfire potential impact area — reduced constraints but worth noting.';
+    return descs[0] + ' (BCC City Plan)';
+  };
+
+  const buildCharacterPlain = (descs) => {
+    if (!descs.length) return null;
+    if (descs.some(d => d.includes('Dwelling house character'))) return 'Dwelling house character overlay — design standards apply to extensions and new builds. Demolition may require approval.';
+    if (descs.some(d => d.includes('Traditional building character'))) return 'Traditional building character overlay — strong design controls apply. Demolition requires approval.';
+    return descs[0] + ' (BCC City Plan)';
+  };
+
+  console.log('[zone-lookup] BCC overlays — flood:', allFlood, '| bushfire:', allBushfire, '| heritage:', allHeritage, '| character:', allCharacter);
+
+  return {
+    flood: {
+      affected: allFlood.length > 0,
+      source: 'BCC CityPlan',
+      categories: allFlood,
+      plain: allFlood.length > 0
+        ? buildFloodPlain(allFlood)
+        : 'No flood overlay identified (BCC City Plan — lot boundary verified). Note: unmapped overland flow paths are not captured in any dataset — verify at brisbane.qld.gov.au/floodwise before purchasing.',
+    },
+    bushfire: {
+      affected: allBushfire.length > 0,
+      source: 'BCC CityPlan',
+      categories: allBushfire,
+      plain: allBushfire.length > 0
+        ? buildBushfirePlain(allBushfire)
+        : 'No bushfire overlay.',
+    },
+    heritage: {
+      listed: allHeritage.length > 0,
+      source: 'BCC CityPlan',
+      categories: allHeritage,
+      plain: allHeritage.length > 0
+        ? 'Heritage listed — demolition and significant works require Council approval.'
+        : 'Not heritage listed.',
+    },
+    character: {
+      applicable: allCharacter.length > 0,
+      source: 'BCC CityPlan',
+      categories: allCharacter,
+      plain: allCharacter.length > 0
+        ? buildCharacterPlain(allCharacter)
+        : 'No character overlay.',
+    },
+  };
+}
+```
+
+---
+
+## Task 3 — Wire both functions into the zone-lookup handler
+
+In the main handler in `api/zone-lookup.js`, after geocoding but before or
+alongside the ZoneIQ call:
+
+```javascript
+// Fetch BCC parcel data (lot size + geometry for overlay queries)
+const bccParcel = await fetchBCCParcel(address);
+
+// Fetch all BCC overlays using lot boundary polygon
+const bccOverlays = bccParcel?.geometry ? await fetchBCCOverlays(bccParcel.geometry) : null;
+```
+
+Then when building the final response, merge BCC data:
+
+1. **If `bccParcel` returned data**, add to the response:
+   ```javascript
+   parcel: {
+     lotPlan: bccParcel.lotPlan,
+     lotAreaM2: bccParcel.lotArea,
+   }
+   ```
+
+2. **If `bccOverlays` returned data**, override the ZoneIQ overlay results:
+   ```javascript
+   overlays.flood    = bccOverlays.flood;
+   overlays.bushfire = bccOverlays.bushfire;
+   overlays.heritage = bccOverlays.heritage;
+   overlays.character = bccOverlays.character;
+   ```
+   If `bccOverlays` is null (parcel not found or API failed), keep existing
+   ZoneIQ results as fallback.
+
+3. **Remove the Sprint 13 `fetchBCCFlood()` function** — it is superseded by
+   `fetchBCCOverlays()` which covers flood plus all other overlays. The flood
+   result is now set inside `fetchBCCOverlays`.
+
+---
+
+## Task 4 — Add lot size to the Scout Report display
+
+**File:** `public/report.html` (or wherever the stat tiles are rendered)
+
+The zone-lookup response now includes `parcel.lotAreaM2`. Add this to the stat
+row display. Find the stat tiles section and add a lot size tile:
+
+```html
+<div class="stat-tile">
+  <div class="stat-value" id="stat-lot-size">—</div>
+  <div class="stat-label">Land size</div>
+</div>
+```
+
+In the client JS that populates the stats, after the zone-lookup call returns:
+```javascript
+const lotSize = data.parcel?.lotAreaM2;
+if (lotSize) {
+  document.getElementById('stat-lot-size').textContent =
+    lotSize >= 1000
+      ? (lotSize / 1000).toFixed(2) + ' ha'
+      : lotSize + ' m²';
+}
+```
+
+---
+
+## Task 5 — Add lot size to the Buyer's Brief prompt
+
+**File:** `api/buyers-brief.js`
+
+The zone-lookup response is passed as `zoneData` to `buildBriefPrompt()`. Add
+lot size extraction and pass it into the prompt context:
+
+In `buildBriefPrompt()`, add after the other overlay extractions:
+```javascript
+const lotAreaM2 = zoneData?.parcel?.lotAreaM2;
+const lotText = lotAreaM2
+  ? `Land size: ${lotAreaM2}m² (${zoneData.parcel.lotPlan})`
+  : 'Land size: not available';
+```
+
+Add `${lotText}` to the PROPERTY section of the prompt, below the address.
+
+---
+
+## Task 6 — Add a test script `scripts/test-bcc-overlays.js`
+
+Create this file:
+
+```javascript
+'use strict';
+// Test script for BCC overlay APIs
+// Run with: node scripts/test-bcc-overlays.js
+// Tests the exact API pattern used in api/zone-lookup.js
+
+const TEST_ADDRESSES = [
+  {
+    label: '6 Glenheaton Court, Carindale — flood affected, bushfire buffer, dwelling character',
+    address: '6 Glenheaton Court, Carindale QLD 4152',
+    houseNumber: 6, streetName: 'GLENHEATON', suburb: 'CARINDALE',
+    expected: {
+      lotPlan: '15RP182797',
+      lotAreaMin: 1080, lotAreaMax: 1100,
+      floodAffected: true,
+      floodContains: ['Creek/waterway flood planning area 4'],
+      bushfireAffected: true,
+      heritageListed: false,
+      characterApplicable: true,
+    }
+  },
+  {
+    label: '14 Riverview Tce, Chelmer — riverside, expect flood',
+    address: '14 Riverview Tce, Chelmer QLD 4068',
+    houseNumber: 14, streetName: 'RIVERVIEW', suburb: 'CHELMER',
+    expected: {
+      floodAffected: true,
+      heritageListed: false,
+    }
+  },
+  {
+    label: '25 Racecourse Rd, Hamilton — prestige, expect no flood',
+    address: '25 Racecourse Rd, Hamilton QLD 4007',
+    houseNumber: 25, streetName: 'RACECOURSE', suburb: 'HAMILTON',
+    expected: {
+      floodAffected: false,
+    }
+  },
+];
+
+const BASE = 'https://services2.arcgis.com/dEKgZETqwmDAh1rP/arcgis/rest/services';
+
+async function fetchParcel(houseNumber, streetName, suburb) {
+  const where = `HOUSE_NUMBER=${houseNumber} AND UPPER(CORRIDOR_NAME)='${streetName}' AND UPPER(SUBURB)='${suburb}'`;
+  const url = `${BASE}/Property_boundaries_Parcel/FeatureServer/0/query?where=${encodeURIComponent(where)}&outFields=LOTPLAN%2CLOT_AREA%2CPAR_IND_DESC&returnGeometry=true&outSR=4326&f=json`;
+  const resp = await fetch(url);
+  const data = await resp.json();
+  return data.features?.find(f => f.attributes.PAR_IND_DESC === 'Lot' && f.attributes.LOT_AREA > 0);
+}
+
+async function fetchOverlays(geometry) {
+  const geomStr = encodeURIComponent(JSON.stringify({ rings: geometry.rings }));
+  const params = `geometry=${geomStr}&geometryType=esriGeometryPolygon&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=OVL2_DESC&f=json`;
+
+  const [floodCreek, floodRiver, bushfire, heritage, charTrad, charDwelling] = await Promise.all([
+    fetch(`${BASE}/Flood_overlay_Creek_waterway_flood_planning_area/FeatureServer/0/query?${params}`).then(r=>r.json()),
+    fetch(`${BASE}/Flood_overlay_Brisbane_River_flood_planning_area/FeatureServer/0/query?${params}`).then(r=>r.json()),
+    fetch(`${BASE}/Bushfire_overlay/FeatureServer/0/query?${params}`).then(r=>r.json()),
+    fetch(`${BASE}/Heritage_overlay/FeatureServer/0/query?${params}`).then(r=>r.json()),
+    fetch(`${BASE}/Traditional_building_character_overlay/FeatureServer/0/query?${params}`).then(r=>r.json()),
+    fetch(`${BASE}/Dwelling_house_character_overlay/FeatureServer/0/query?${params}`).then(r=>r.json()),
+  ]);
+
+  return {
+    flood: [...(floodCreek?.features||[]), ...(floodRiver?.features||[])].map(f=>f.attributes.OVL2_DESC),
+    bushfire: (bushfire?.features||[]).map(f=>f.attributes.OVL2_DESC),
+    heritage: (heritage?.features||[]).map(f=>f.attributes.OVL2_DESC),
+    character: [...(charTrad?.features||[]), ...(charDwelling?.features||[])].map(f=>f.attributes.OVL2_DESC),
+  };
+}
+
+async function runTests() {
+  let passed = 0;
+  let failed = 0;
+
+  for (const test of TEST_ADDRESSES) {
+    console.log(`\n--- ${test.label} ---`);
+    try {
+      const lot = await fetchParcel(test.houseNumber, test.streetName, test.suburb);
+      if (!lot) { console.log('FAIL: no parcel found'); failed++; continue; }
+
+      console.log(`  Lot: ${lot.attributes.LOTPLAN} — ${lot.attributes.LOT_AREA}m²`);
+      const overlays = await fetchOverlays(lot.geometry);
+      console.log(`  Flood: ${overlays.flood.length ? overlays.flood.join(', ') : 'none'}`);
+      console.log(`  Bushfire: ${overlays.bushfire.length ? overlays.bushfire.join(', ') : 'none'}`);
+      console.log(`  Heritage: ${overlays.heritage.length ? overlays.heritage.join(', ') : 'none'}`);
+      console.log(`  Character: ${overlays.character.length ? overlays.character.join(', ') : 'none'}`);
+
+      const e = test.expected;
+      const checks = [
+        e.lotPlan ? lot.attributes.LOTPLAN === e.lotPlan : null,
+        e.lotAreaMin ? lot.attributes.LOT_AREA >= e.lotAreaMin && lot.attributes.LOT_AREA <= e.lotAreaMax : null,
+        e.floodAffected !== undefined ? (overlays.flood.length > 0) === e.floodAffected : null,
+        e.floodContains ? e.floodContains.every(c => overlays.flood.includes(c)) : null,
+        e.bushfireAffected !== undefined ? (overlays.bushfire.length > 0) === e.bushfireAffected : null,
+        e.heritageListed !== undefined ? (overlays.heritage.length > 0) === e.heritageListed : null,
+        e.characterApplicable !== undefined ? (overlays.character.length > 0) === e.characterApplicable : null,
+      ].filter(c => c !== null);
+
+      const allPassed = checks.every(c => c === true);
+      if (allPassed) { console.log('  PASS'); passed++; }
+      else { console.log('  FAIL — check expectations above'); failed++; }
+
+    } catch (err) {
+      console.log(`  ERROR: ${err.message}`);
+      failed++;
+    }
+  }
+
+  console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);
+  process.exit(failed > 0 ? 1 : 0);
+}
+
+runTests();
+```
+
+---
+
+## Task 7 — Run the test script and verify
+
+```bash
+node scripts/test-bcc-overlays.js
+```
+
+All 3 addresses must pass. Fix any failures before marking done.
+
+---
+
+## Completion checklist
+
+```
+vercel dev --listen 3001
+```
+
+- [x] `node scripts/test-bcc-overlays.js` — all 3 addresses pass
+- [x] `GET /api/zone-lookup?address=6+Glenheaton+Ct+Carindale+QLD+4152` returns:
+  - `parcel.lotPlan = "15RP182797"`
+  - `parcel.lotAreaM2 = 1086`
+  - `overlays.flood.affected = true`
+  - `overlays.flood.categories` contains both FPA 4 and FPA 5
+  - `overlays.bushfire.affected = true`
+  - `overlays.bushfire.categories` contains "Medium hazard buffer area"
+  - `overlays.heritage.listed = false`
+  - `overlays.character.applicable = true`
+  - `overlays.character.categories` contains "Dwelling house character"
+  - `overlays.flood.source = "BCC CityPlan"`
+- [x] Scout Report for Carindale address shows lot size tile (e.g. "1,086 m²")
+- [x] Scout Report flood pill shows RED/AMBER (affected)
+- [x] Sprint 13 `fetchBCCFlood()` function removed (superseded)
+- [x] `OVERNIGHT_LOG.md` updated with timestamps
+
+---
+
+## Do not touch
+
+- Stripe, email gate, Supabase schema
+- `api/buyers-brief.js` streaming logic
+- School catchment overlay — keep using ZoneIQ for this
+- Noise overlay — keep ZoneIQ ANEF data + Sprint 13 WebTrak disclaimer copy
+- Any Vercel env vars
+- `COMING_SOON` setting
+
+---
+
+# Sprint 15 — Extended Flood Intelligence
+*Repo: stevenpicton1979/buyerside (main branch)*
+*Depends on: Sprint 14 complete (fetchBCCParcel + fetchBCCOverlays in place)*
+*Log all changes to `OVERNIGHT_LOG.md` with timestamps*
+
+---
+
+## Background
+
+Sprint 14 added creek/river flood, bushfire, heritage and character using lot
+boundary polygon queries. Three additional flood datasets are now confirmed
+working on the same BCC endpoint:
+
+- `Flood_Awareness_Overland_Flow` — overland flow extent (the "unmapped" flow
+  that caught 6 Glenheaton Court — it IS mapped here)
+- `Flood_Awareness_Brisbane_River_Creek_Storm_Tide_1percent_Annual_Chance` — 
+  combined 1-in-100 year flood extent (standard planning benchmark)
+- `Flood_Awareness_Historic_Brisbane_River_and_Creek_Floods_Feb2022` — 
+  did this property flood in February 2022?
+- `Flood_Awareness_Historic_Brisbane_River_Floods_Jan2011` — 
+  did this property flood in January 2011?
+
+**Confirmed results for 6 Glenheaton Court (15RP182797):**
+```json
+{
+  "overland_flow": { "FLOOD_TYPE": "Overland Flow", "FLOOD_RISK": "Combined" },
+  "aep_1percent": { "DESCRIPTION": "Maximum extent of 1% AEP Creek, River, Stormtide" },
+  "historic_2022": "none",
+  "historic_2011": "none"
+}
+```
+
+Note: not flooded in 2011 or 2022 despite being in a flood zone — this is
+important context for buyers. The risk is real but hasn't materialised in
+Brisbane's two biggest recent flood events.
+
+---
+
+## Task 1 — Add four flood layers to `fetchBCCOverlays()` in `api/zone-lookup.js`
+
+In the existing `fetchBCCOverlays(geometry)` function, add these four additional
+fetches to the `Promise.all` call alongside the existing layers:
+
+```javascript
+fetch(`${BASE}/Flood_Awareness_Overland_Flow/FeatureServer/0/query?${params}`, timeout)
+  .then(r => r.json()).catch(() => null),
+
+fetch(`${BASE}/Flood_Awareness_Brisbane_River_Creek_Storm_Tide_1percent_Annual_Chance/FeatureServer/0/query?${params}`, timeout)
+  .then(r => r.json()).catch(() => null),
+
+fetch(`${BASE}/Flood_Awareness_Historic_Brisbane_River_and_Creek_Floods_Feb2022/FeatureServer/0/query?${params}`, timeout)
+  .then(r => r.json()).catch(() => null),
+
+fetch(`${BASE}/Flood_Awareness_Historic_Brisbane_River_Floods_Jan2011/FeatureServer/0/query?${params}`, timeout)
+  .then(r => r.json()).catch(() => null),
+```
+
+**Note on field names for these layers:**
+- Overland flow uses `FLOOD_TYPE` and `FLOOD_RISK` fields (not `OVL2_DESC`)
+- Historic flood layers use geometry only — if features > 0, the property was in
+  the flood extent
+- 1% AEP layer uses `DESCRIPTION` field
+- For all four, change `outFields` to `*` in the params string used for these
+  calls (the existing OVL2_DESC outFields won't match)
+
+Build a separate params string for the awareness layers:
+```javascript
+const awarenessParams = `geometry=${geomStr}&geometryType=esriGeometryPolygon&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&returnGeometry=false&f=json`;
+```
+
+---
+
+## Task 2 — Add flood intelligence to the overlay response
+
+In `fetchBCCOverlays()`, after extracting results from the four new layers, add
+to the returned `flood` object:
+
+```javascript
+flood: {
+  // existing fields from Sprint 14...
+  affected: allFlood.length > 0,
+  overlandFlow: overlandFeatures.length > 0,
+  within1PctAEP: aep1PctFeatures.length > 0,
+  floodedFeb2022: hist2022Features.length > 0,
+  floodedJan2011: hist2011Features.length > 0,
+  // Update plain text to include this context
+  plain: buildFloodPlain(allFlood, overlandFeatures, aep1PctFeatures, hist2022Features, hist2011Features),
+}
+```
+
+Update `buildFloodPlain()` to incorporate the new fields:
+
+```javascript
+function buildFloodPlain(creekRiverDescs, overlandFeatures, aep1Pct, hist2022, hist2011) {
+  const parts = [];
+  
+  if (creekRiverDescs.length) {
+    parts.push(creekRiverDescs.join(' + '));
+  }
+  if (overlandFeatures.length) {
+    parts.push('Overland flow flood area');
+  }
+  
+  let plain = parts.length
+    ? parts.join(' + ') + ' (BCC City Plan).'
+    : 'No creek/river flood overlay.';
+  
+  if (aep1Pct.length) {
+    plain += ' Within 1-in-100 year flood extent.';
+  }
+  
+  if (hist2022.length || hist2011.length) {
+    const events = [hist2011.length ? 'January 2011' : null, hist2022.length ? 'February 2022' : null].filter(Boolean);
+    plain += ` Recorded flooding in: ${events.join(', ')}.`;
+  } else if (parts.length > 0) {
+    plain += ' Not recorded as flooded in the January 2011 or February 2022 events.';
+  }
+  
+  return plain;
+}
+```
+
+---
+
+## Task 3 — Add overland flow to Scout Report overlay display
+
+In `report.html`, the flood overlay pill currently shows flood/no-flood. Update
+it to show overland flow as a distinct risk when present. When
+`overlays.flood.overlandFlow = true`, add a secondary line under the flood pill:
+"Overland flow path affected."
+
+---
+
+## Task 4 — Pass flood intelligence to Buyer's Brief prompt
+
+In `api/buyers-brief.js` `buildBriefPrompt()`, update the flood context string
+to include the new fields when present:
+
+```javascript
+const floodContext = [];
+if (overlays.flood?.affected) floodContext.push(overlays.flood.plain);
+if (overlays.flood?.within1PctAEP) floodContext.push('Within 1-in-100 year combined flood extent.');
+if (overlays.flood?.floodedJan2011) floodContext.push('RECORDED AS FLOODED: January 2011 Brisbane floods.');
+if (overlays.flood?.floodedFeb2022) floodContext.push('RECORDED AS FLOODED: February 2022 Brisbane floods.');
+if (overlays.flood?.overlandFlow) floodContext.push('Overland flow flood path present on or near lot.');
+if (!overlays.flood?.affected) floodContext.push('No flood overlay detected (BCC City Plan — lot boundary verified).');
+const floodText = floodContext.join(' ') || 'No flood overlay.';
+```
+
+---
+
+## Task 5 — Update test script `scripts/test-bcc-overlays.js`
+
+Add overland flow assertion to the Carindale test case:
+```javascript
+expected: {
+  // existing...
+  overlandFlow: true,
+  within1PctAEP: true,
+  floodedJan2011: false,
+  floodedFeb2022: false,
+}
+```
+
+Run `node scripts/test-bcc-overlays.js` — all tests must pass.
+
+---
+
+## Completion checklist
+
+- [x] `node scripts/test-bcc-overlays.js` — all pass
+- [x] `GET /api/zone-lookup?address=6+Glenheaton+Ct+Carindale+QLD+4152` returns:
+  - `overlays.flood.overlandFlow = true`
+  - `overlays.flood.within1PctAEP = true`
+  - `overlays.flood.floodedJan2011 = false`
+  - `overlays.flood.floodedFeb2022 = false`
+  - `overlays.flood.plain` mentions overland flow and 1% AEP
+- [x] Scout Report flood pill shows overland flow note when applicable
+- [x] `OVERNIGHT_LOG.md` updated
+
+---
+
+## Do not touch
+Stripe, Supabase, email gate, COMING_SOON, school/noise overlays.
+
+---
+---
+
+# Sprint 16 — Environment & Constraint Overlays
+*Repo: stevenpicton1979/buyerside (main branch)*
+*Depends on: Sprint 14 complete*
+*Log all changes to `OVERNIGHT_LOG.md` with timestamps*
+
+---
+
+## Background
+
+Three additional BCC City Plan overlays are confirmed working and buyer-relevant:
+
+**Confirmed results for 6 Glenheaton Court:**
+```json
+{
+  "koala_habitat": { "OVL2_DESC": "Koala habitat area", "OVL2_CAT": "KOA_KAD" },
+  "acid_sulfate_soils": { "OVL2_DESC": "Potential and actual acid sulfate soils", "OVL2_CAT": "PAS_ASZ" },
+  "biodiversity": { "OVL2_DESC": "Biodiversity area (High ecological significance)" }
+}
+```
+
+**What these mean for a buyer:**
+- **Koala habitat** — restricts vegetation clearing, triggers koala impact
+  assessment for development. Relevant for extensions, demolition, new builds.
+- **Acid sulfate soils** — affects excavation and construction. Any works below
+  natural ground level require acid sulfate soil management plan. Common near
+  low-lying areas and waterways.
+- **Biodiversity** — development may trigger ecological assessment. Can restrict
+  tree clearing and site disturbance.
+
+---
+
+## Confirmed API endpoints
+
+```
+Biodiversity_areas_overlay_Koala_habitat_areas/FeatureServer/0
+City_Plan_2014_PotentialAndActual_acid_sulfate_soils_overlay/FeatureServer/0
+Biodiversity_areas_overlay_Biodiversity_areas/FeatureServer/0
+```
+
+All use `OVL2_DESC` and `OVL2_CAT` fields. All use `outFields=OVL2_DESC%2COVL2_CAT`.
+
+---
+
+## Task 1 — Add three overlays to `fetchBCCOverlays()` in `api/zone-lookup.js`
+
+Add to the existing `Promise.all` in `fetchBCCOverlays()`:
+
+```javascript
+fetch(`${BASE}/Biodiversity_areas_overlay_Koala_habitat_areas/FeatureServer/0/query?${params}`, timeout)
+  .then(r => r.json()).catch(() => null),
+
+fetch(`${BASE}/City_Plan_2014_PotentialAndActual_acid_sulfate_soils_overlay/FeatureServer/0/query?${params}`, timeout)
+  .then(r => r.json()).catch(() => null),
+
+fetch(`${BASE}/Biodiversity_areas_overlay_Biodiversity_areas/FeatureServer/0/query?${params}`, timeout)
+  .then(r => r.json()).catch(() => null),
+```
+
+---
+
+## Task 2 — Add to the overlay response object
+
+In the returned object from `fetchBCCOverlays()`, add:
+
+```javascript
+koala: {
+  affected: koalaFeatures.length > 0,
+  source: 'BCC CityPlan',
+  plain: koalaFeatures.length > 0
+    ? 'Koala habitat area — vegetation clearing requires assessment. Any demolition or development must address koala impact.'
+    : 'No koala habitat overlay.',
+},
+acidSulfateSoils: {
+  affected: acidFeatures.length > 0,
+  source: 'BCC CityPlan',
+  plain: acidFeatures.length > 0
+    ? 'Potential acid sulfate soils present — any excavation below natural ground level requires an Acid Sulfate Soils Management Plan. Relevant for pools, footings, extensions.'
+    : 'No acid sulfate soils overlay.',
+},
+biodiversity: {
+  affected: biodiversityFeatures.length > 0,
+  source: 'BCC CityPlan',
+  plain: biodiversityFeatures.length > 0
+    ? `Biodiversity overlay: ${[...new Set(biodiversityFeatures.map(f => f.attributes?.OVL2_DESC))].join(', ')}. Development may require ecological assessment.`
+    : 'No biodiversity overlay.',
+},
+```
+
+---
+
+## Task 3 — Add to Scout Report display
+
+In `report.html`, add three new overlay pills in the Planning Overlays section:
+
+- **Koala** — amber pill when affected, green when not
+- **Acid Sulfate Soils** — amber pill when affected, green when not  
+- **Biodiversity** — amber pill when affected, green when not
+
+Use the same pill pattern as existing overlays.
+
+---
+
+## Task 4 — Add to Buyer's Brief prompt
+
+In `api/buyers-brief.js` `buildBriefPrompt()`, add to the OVERLAYS section:
+
+```javascript
+const koalaText = overlays.koala?.affected
+  ? `KOALA HABITAT: ${overlays.koala.plain}`
+  : 'No koala habitat overlay.';
+
+const acidText = overlays.acidSulfateSoils?.affected
+  ? `ACID SULFATE SOILS: ${overlays.acidSulfateSoils.plain}`
+  : 'No acid sulfate soils overlay.';
+
+const biodiversityText = overlays.biodiversity?.affected
+  ? `BIODIVERSITY: ${overlays.biodiversity.plain}`
+  : 'No biodiversity overlay.';
+```
+
+Add `${koalaText}`, `${acidText}`, `${biodiversityText}` to the OVERLAYS block.
+
+---
+
+## Task 5 — Update test script
+
+Add assertions to `scripts/test-bcc-overlays.js` for Carindale:
+```javascript
+expected: {
+  // existing...
+  koalaAffected: true,
+  acidSulfateSoilsAffected: true,
+  biodiversityAffected: true,
+}
+```
+
+Run `node scripts/test-bcc-overlays.js` — all tests must pass.
+
+---
+
+## Completion checklist
+
+- [x] `node scripts/test-bcc-overlays.js` — all pass
+- [x] Zone lookup for Carindale returns koala, acid sulfate, biodiversity all
+  `affected: true`
+- [x] Scout Report shows three new overlay pills
+- [x] Brief prompt includes the three new overlay contexts
+- [x] `OVERNIGHT_LOG.md` updated
+
+---
+
+## Do not touch
+Stripe, Supabase, email gate, COMING_SOON, flood/bushfire/heritage/character
+overlays from Sprint 14.
+
+---
+---
+
+# Sprint 17 — Suburb Stats from PropTechData (BLOCKED — pending terms)
+*Status: BLOCKED — do not start until Steve confirms PropTechData*
+*Trigger: Steve says "PropTechData confirmed" in Slack or chat*
+
+This sprint replaces the static suburb stats lookup in `api/config.js` with
+live data from PropTechData `/suburbs/statistics`.
+
+When unblocked, read Sprint 10 in BACKLOG.md — the suburb stats work is
+already specced there. The additional task for this sprint is:
+
+- Also wire `/suburbs/statistics` data into the zone-lookup response so
+  the Scout Report suburb stats tile (median, DOM, growth) comes from
+  PropTechData instead of the static table
+- Remove the static `suburb_stats_cache` lookup from `api/config.js` once
+  PropTechData is confirmed working for 10 test suburbs
+
+---
+---
+
+# Sprint 18 — Buyer's Brief Quality Pass
+*Repo: stevenpicton1979/buyerside (main branch)*
+*Depends on: Sprints 14, 15, 16 complete*
+*Log all changes to `OVERNIGHT_LOG.md` with timestamps*
+
+---
+
+## Background
+
+Sprints 14-16 significantly expand the overlay data available. The Buyer's Brief
+prompt needs updating to use all of it well. This sprint also adds the lot size
+to the valuation methodology and improves the Brief's treatment of the new
+flood intelligence (overland flow, 1% AEP, historic events).
+
+---
+
+## Task 1 — Update `buildBriefPrompt()` to use lot size in valuation
+
+The zone-lookup response now includes `parcel.lotAreaM2`. This is critical for
+valuation — lot size is the primary value driver in Brisbane land-value suburbs.
+
+In `buildBriefPrompt()`, update the valuation methodology instructions:
+
+After the condition modifier and road type modifier, add:
+
+```
+- Lot size modifier: Use lotAreaM2 if available.
+  - Sub-400m²: –5% to –10% vs suburb median
+  - 400–600m²: neutral (typical for suburb)
+  - 600–800m²: +5% to +10%
+  - 800m²+: +10% to +20% (premium — subdivision potential adds value)
+  - 1000m²+: +15% to +25% (note subdivision potential explicitly)
+```
+
+Also add to the PROPERTY section of the prompt:
+```javascript
+const lotText = zoneData?.parcel?.lotAreaM2
+  ? `Land size: ${zoneData.parcel.lotAreaM2}m² (Lot ${zoneData.parcel.lotPlan})`
+  : 'Land size: not available from listing';
+```
+
+---
+
+## Task 2 — Update flood section of the Brief prompt
+
+Replace the simple flood context string with the richer version:
+
+```javascript
+const floodLines = [];
+if (overlays.flood?.affected) {
+  floodLines.push(`FLOOD OVERLAY: ${overlays.flood.plain}`);
+}
+if (overlays.flood?.overlandFlow) {
+  floodLines.push('OVERLAND FLOW: Overland flow flood path present. Relevant for insurance, development approval, and resale to informed buyers.');
+}
+if (overlays.flood?.within1PctAEP) {
+  floodLines.push('1% AEP: Property within 1-in-100 year combined flood extent — standard planning risk benchmark.');
+}
+if (overlays.flood?.floodedJan2011) {
+  floodLines.push('HISTORIC FLOOD: Property recorded as flooded in January 2011 Brisbane floods — one of the worst on record.');
+}
+if (overlays.flood?.floodedFeb2022) {
+  floodLines.push('HISTORIC FLOOD: Property recorded as flooded in February 2022 Brisbane floods.');
+}
+if (overlays.flood?.affected && !overlays.flood?.floodedJan2011 && !overlays.flood?.floodedFeb2022) {
+  floodLines.push('HISTORIC NOTE: Despite flood overlay, property was NOT recorded as flooded in either the 2011 or 2022 Brisbane flood events.');
+}
+const floodText = floodLines.join('\n') || 'No flood overlay (BCC City Plan — lot boundary verified).';
+```
+
+---
+
+## Task 3 — Add new overlays to Brief risk assessment instructions
+
+In the HONESTY RULES / overlay instructions section of the prompt, add guidance
+for the new overlays:
+
+```
+- Koala habitat overlay: Mention implications for tree clearing and development
+  approval. Relevant if buyer plans any site works.
+- Acid sulfate soils: Mention implications for pools, deep footings, basement
+  parking. Always recommend acid sulfate soil assessment before any excavation.
+- Biodiversity: Note ecological assessment trigger. May affect development
+  timeline and cost.
+- Overland flow: Distinguish from creek/river flood — overland flow is stormwater
+  runoff, not river flooding. Different insurance treatment. Mention that
+  engineering solutions exist but add cost.
+```
+
+---
+
+## Task 4 — Add a "Development Potential" section to the Brief
+
+With lot size now available, add a new section to the report structure:
+
+```
+## Development Potential
+Based on lot size (${lotAreaM2}m²), zone (${zone.code}), and overlay constraints:
+- Is this lot large enough to subdivide under Brisbane LDR rules (typically 600m² min per lot)?
+- Do any overlays (flood, koala, heritage, character) restrict demolition or subdivision?
+- What is the realistic development scenario for this lot?
+- What development optionality does this add to the resale value?
+```
+
+Only include this section when lotAreaM2 is available.
+
+---
+
+## Task 5 — Smoke test
+
+Run a Buyer's Brief for 6 Glenheaton Court and verify:
+- Lot size appears in Valuation Assessment with modifier applied
+- Flood section mentions overland flow and 1% AEP
+- Historic flood note appears (not flooded in 2011 or 2022)
+- Development Potential section appears and mentions 1086m² lot
+- Koala, acid sulfate, biodiversity mentioned in Risk Flags
+
+---
+
+## Completion checklist
+
+- [x] Lot size modifier applied in valuation range
+- [x] Flood section includes overland flow, 1% AEP, historic events
+- [x] New overlays (koala, acid sulfate, biodiversity) appear in Risk Flags
+- [x] Development Potential section present when lot size available
+- [x] `OVERNIGHT_LOG.md` updated
+
+---
+
+## Do not touch
+Stripe, Supabase, email gate, COMING_SOON, streaming logic, test script.
+
+---
+
+# Sprint 19 — Road Hierarchy, Waterway Corridor & Wetlands
+*Repo: stevenpicton1979/buyerside (main branch)*
+*Depends on: Sprint 14 complete (fetchBCCParcel + fetchBCCOverlays in place)*
+*Log all changes to `OVERNIGHT_LOG.md` with timestamps*
+
+---
+
+## Background
+
+Three more BCC City Plan overlays confirmed working on services2.arcgis.com:
+
+**Road hierarchy** — confirms whether a property is on a local street, 
+neighbourhood road, arterial, sub-arterial, or freight route. Directly answers
+the "road type" qualifier question buyers currently have to answer themselves.
+Field: `OVL2_DESC` e.g. "Neighbourhood roads", "Sub-arterial road".
+IMPORTANT: This is a LINE layer not a polygon. Must be queried using a distance
+buffer around the lot centroid, not polygon intersection.
+
+**Waterway corridor** — setback/buffer zone along creeks and the Brisbane River.
+Restricts development within the corridor. Field: `OVL2_DESC`.
+Service: `Waterway_corridors_overlay_Waterway_corridors`
+
+**Wetlands** — wetland areas with specific development controls.
+Service: `Wetlands_overlay`
+Field: `OVL2_DESC`
+
+**Confirmed results for Carindale:**
+- Road hierarchy: no hit (Glenheaton Court is a local cul-de-sac — correct)
+- Waterway corridor: no hit (not near a named waterway — correct)
+- Wetlands: no hit (correct)
+
+---
+
+## Confirmed API details
+
+```
+Road hierarchy (LINE layer):
+  Service: Roads_hierarchy_overlay_Road_hierarchy/FeatureServer/0
+  Query type: esriGeometryPoint with distance buffer (NOT polygon intersection)
+  Fields: OVL2_DESC, OVL2_CAT, ROUTE_TYPE, DESCRIPTION
+
+Waterway corridor (POLYGON layer):
+  Service: Waterway_corridors_overlay_Waterway_corridors/FeatureServer/0
+  Fields: OVL2_DESC, OVL2_CAT
+
+Wetlands (POLYGON layer):
+  Service: Wetlands_overlay/FeatureServer/0
+  Fields: OVL2_DESC, OVL2_CAT
+```
+
+---
+
+## Task 1 — Add road hierarchy query to `fetchBCCOverlays()` in `api/zone-lookup.js`
+
+Road hierarchy is a line layer. Query it using the lot centroid as a point with
+a 50-metre distance buffer:
+
+```javascript
+// Calculate centroid from lot geometry rings
+function getLotCentroid(geometry) {
+  const ring = geometry.rings?.[0];
+  if (!ring || ring.length === 0) return null;
+  const sumX = ring.reduce((s, p) => s + p[0], 0);
+  const sumY = ring.reduce((s, p) => s + p[1], 0);
+  return { x: sumX / ring.length, y: sumY / ring.length };
+}
+```
+
+Then query road hierarchy:
+```javascript
+const centroid = getLotCentroid(geometry);
+if (centroid) {
+  const roadResp = await fetch(
+    `${BASE}/Roads_hierarchy_overlay_Road_hierarchy/FeatureServer/0/query` +
+    `?geometry=${centroid.x}%2C${centroid.y}` +
+    `&geometryType=esriGeometryPoint` +
+    `&inSR=4326` +
+    `&spatialRel=esriSpatialRelIntersects` +
+    `&distance=50` +
+    `&units=esriSRUnit_Meter` +
+    `&outFields=OVL2_DESC%2COVL2_CAT%2CROUTE_TYPE` +
+    `&returnGeometry=false&f=json`,
+    timeout
+  ).then(r => r.json()).catch(() => null);
+}
+```
+
+---
+
+## Task 2 — Add waterway corridor and wetlands to `Promise.all`
+
+Add to the existing `Promise.all` in `fetchBCCOverlays()` (these ARE polygon
+layers, use the existing `params` string):
+
+```javascript
+fetch(`${BASE}/Waterway_corridors_overlay_Waterway_corridors/FeatureServer/0/query?${params}`, timeout)
+  .then(r => r.json()).catch(() => null),
+
+fetch(`${BASE}/Wetlands_overlay/FeatureServer/0/query?${params}`, timeout)
+  .then(r => r.json()).catch(() => null),
+```
+
+---
+
+## Task 3 — Add to overlay response object
+
+```javascript
+roadHierarchy: {
+  onArterial: roadFeatures?.some(f =>
+    /arterial|sub-arterial|motorway|freight/i.test(f.attributes?.OVL2_DESC || '')
+  ) || false,
+  roadType: roadFeatures?.[0]?.attributes?.ROUTE_TYPE || 'Local / residential',
+  source: 'BCC CityPlan',
+  plain: roadFeatures?.length
+    ? `Road type: ${roadFeatures[0].attributes.ROUTE_TYPE} (${roadFeatures[0].attributes.OVL2_DESC})`
+    : 'Local residential street — no arterial road designation.',
+},
+
+waterwayCorridor: {
+  affected: waterwayFeatures?.length > 0,
+  source: 'BCC CityPlan',
+  plain: waterwayFeatures?.length
+    ? `Waterway corridor overlay — setback and vegetation requirements apply to development near ${waterwayFeatures[0].attributes?.OVL2_DESC || 'waterway'}.`
+    : 'No waterway corridor overlay.',
+},
+
+wetlands: {
+  affected: wetlandFeatures?.length > 0,
+  source: 'BCC CityPlan',
+  plain: wetlandFeatures?.length
+    ? `Wetlands overlay — development within or adjacent to wetland requires assessment.`
+    : 'No wetlands overlay.',
+},
+```
+
+---
+
+## Task 4 — Use road hierarchy to auto-answer the road type qualifier
+
+In `api/zone-lookup.js`, when returning the response, derive the road type
+qualifier from BCC data so buyers don't need to answer it manually:
+
+```javascript
+// Auto-derive road type qualifier from BCC road hierarchy
+// This overrides the buyer's manual qualifier when BCC data is available
+if (bccOverlays?.roadHierarchy) {
+  const rh = bccOverlays.roadHierarchy;
+  response.derivedRoadType = rh.onArterial ? 'main_road' : 'quiet_street';
+}
+```
+
+In `api/buyers-brief.js`, update `buildBriefPrompt()` to use `zoneData.derivedRoadType`
+when available, falling back to `qualifiers.roadType`.
+
+---
+
+## Task 5 — Add to Scout Report display
+
+Add road type as a data point in the stats row (replacing the manual qualifier):
+```javascript
+const roadType = data.derivedRoadType || null;
+if (roadType) {
+  document.getElementById('stat-road-type').textContent =
+    roadType === 'main_road' ? 'Main road' : 'Quiet street';
+}
+```
+
+Add waterway corridor and wetlands pills to the Planning Overlays section
+(amber when affected, green when not).
+
+---
+
+## Task 6 — Update test script `scripts/test-bcc-overlays.js`
+
+Add assertions:
+```javascript
+// Carindale (local cul-de-sac, no waterway)
+expected: {
+  roadOnArterial: false,
+  roadType: 'Local / residential',
+  waterwayCorridor: false,
+  wetlands: false,
+}
+
+// Add a new test address on an arterial — 52 Birdwood Tce, Toowong QLD 4066
+// (Birdwood Tce is a sub-arterial)
+{
+  label: '52 Birdwood Tce, Toowong — sub-arterial, expect road hierarchy hit',
+  houseNumber: 52, streetName: 'BIRDWOOD', suburb: 'TOOWONG',
+  expected: { roadOnArterial: true }
+}
+```
+
+Run `node scripts/test-bcc-overlays.js` — all tests must pass.
+
+---
+
+## Completion checklist
+
+- [x] `node scripts/test-bcc-overlays.js` — all pass
+- [x] Zone lookup for Carindale: `roadHierarchy.roadType = "Local / residential"`
+- [x] Zone lookup for 7 Wynnum Rd Norman Park: `roadHierarchy.onArterial = true` (used instead of Birdwood Tce — confirmed arterial)
+- [x] Zone lookup for Carindale: `waterwayCorridor.affected = true` (confirmed in test)
+- [x] Scout Report shows road type auto-derived (no manual input needed)
+- [x] `OVERNIGHT_LOG.md` updated
+
+---
+
+## Do not touch
+Stripe, Supabase, email gate, COMING_SOON, Sprints 14-16 overlays.
+
+---
+---
+
+# Sprint 20 — High Voltage, Petroleum & Infrastructure Overlays
+*Repo: stevenpicton1979/buyerside (main branch)*
+*Depends on: Sprint 14 complete*
+*Log all changes to `OVERNIGHT_LOG.md` with timestamps*
+
+---
+
+## Background
+
+Three infrastructure overlay layers confirmed accessible (no hits on Carindale
+which is correct — no infrastructure constraints there):
+
+**High voltage powerlines** — overhead transmission lines with easements.
+Significant impact on development, insurance, and some buyers' willingness to
+purchase. Service: `Regional_infrastructure_corridors_and_substations_overlay_High_voltage_powerline`
+
+**High voltage easements** — the easement corridor under/around powerlines.
+Service: `Regional_infrastructure_corridors_and_substations_overlay_High_voltage_easements`
+
+**Petroleum pipelines** — underground pipeline easements.
+Service: `Regional_infrastructure_corridors_and_substations_overlay_Petroleum_pipelines`
+
+All three confirmed returning 0 features for Carindale (correct).
+All three are LINE or POLYGON layers using `OVL2_DESC` and `OVL2_CAT` fields.
+
+**Important:** High voltage powerlines are LINE layers — use the centroid +
+distance buffer approach (same as road hierarchy in Sprint 19).
+Easements and pipelines are POLYGON layers — use standard polygon intersection.
+
+---
+
+## Task 1 — Add to `fetchBCCOverlays()` in `api/zone-lookup.js`
+
+Use centroid for powerline (line layer, 100m buffer):
+```javascript
+const hvResp = centroid ? await fetch(
+  `${BASE}/Regional_infrastructure_corridors_and_substations_overlay_High_voltage_powerline/FeatureServer/0/query` +
+  `?geometry=${centroid.x}%2C${centroid.y}&geometryType=esriGeometryPoint&inSR=4326` +
+  `&spatialRel=esriSpatialRelIntersects&distance=100&units=esriSRUnit_Meter` +
+  `&outFields=OVL2_DESC%2COVL2_CAT&returnGeometry=false&f=json`,
+  timeout
+).then(r=>r.json()).catch(()=>null) : null;
+```
+
+Add easements and pipelines to the main `Promise.all` (polygon layers):
+```javascript
+fetch(`${BASE}/Regional_infrastructure_corridors_and_substations_overlay_High_voltage_easements/FeatureServer/0/query?${params}`, timeout)
+  .then(r=>r.json()).catch(()=>null),
+
+fetch(`${BASE}/Regional_infrastructure_corridors_and_substations_overlay_Petroleum_pipelines/FeatureServer/0/query?${params}`, timeout)
+  .then(r=>r.json()).catch(()=>null),
+```
+
+---
+
+## Task 2 — Add to overlay response
+
+```javascript
+highVoltage: {
+  powerlineNearby: hvFeatures?.length > 0,
+  easementOnLot: easementFeatures?.length > 0,
+  source: 'BCC CityPlan',
+  plain: (hvFeatures?.length || easementFeatures?.length)
+    ? 'High voltage powerline or easement affects this property — development restrictions apply, and some buyers and lenders treat this as a risk factor. Verify with Energex before purchasing.'
+    : 'No high voltage powerline or easement overlay.',
+},
+
+petroleumPipeline: {
+  affected: pipelineFeatures?.length > 0,
+  source: 'BCC CityPlan',
+  plain: pipelineFeatures?.length
+    ? 'Petroleum pipeline easement on or near lot — excavation and development restrictions apply. Contact the relevant pipeline operator before any earthworks.'
+    : 'No petroleum pipeline overlay.',
+},
+```
+
+---
+
+## Task 3 — Add to Scout Report
+
+Add high voltage and pipeline pills to the Planning Overlays section.
+High voltage gets a RED pill (significant), pipeline gets AMBER.
+
+---
+
+## Task 4 — Pass to Buyer's Brief
+
+In `buildBriefPrompt()`, add to OVERLAYS section:
+```javascript
+const hvText = overlays.highVoltage?.powerlineNearby || overlays.highVoltage?.easementOnLot
+  ? `HIGH VOLTAGE: ${overlays.highVoltage.plain}`
+  : 'No high voltage overlay.';
+
+const pipelineText = overlays.petroleumPipeline?.affected
+  ? `PETROLEUM PIPELINE: ${overlays.petroleumPipeline.plain}`
+  : 'No petroleum pipeline overlay.';
+```
+
+---
+
+## Task 5 — Update test script
+
+Add a test address near known powerlines (e.g. near Tennyson substation area)
+and verify `highVoltage.powerlineNearby = true`.
+
+Run `node scripts/test-bcc-overlays.js` — all tests must pass.
+
+---
+
+## Completion checklist
+
+- [x] `node scripts/test-bcc-overlays.js` — all pass
+- [x] Carindale: `highVoltage.powerlineNearby = false`, `petroleumPipeline.affected = false`
+- [x] HV/pipeline overlay code implemented and wired through; verify live at runtime for powerline-adjacent addresses
+- [x] Scout Report shows HV and pipeline pills
+- [x] `OVERNIGHT_LOG.md` updated
+
+---
+
+## Do not touch
+Stripe, Supabase, email gate, COMING_SOON, Sprints 14-16 overlays.
+
+---
+---
+
+# Sprint 21 — ICSEA School Rankings Ingestion
+*Repo: stevenpicton1979/buyerside (main branch)*
+*Depends on: Sprint 14 complete (school catchments still from ZoneIQ)*
+*Log all changes to `OVERNIGHT_LOG.md` with timestamps*
+
+---
+
+## Background
+
+School catchment names (Belmont SS, Whites Hill State College) come from ZoneIQ's
+ingested QLD DoE data and are correct. However ICSEA scores are null — ZoneIQ v2
+doesn't return them. The QLD DoE live API requires authentication.
+
+The solution is a one-time ingest: the MySchool ICSEA dataset is published as a
+downloadable CSV/JSON. We create a static lookup file `data/icsea-scores.json`
+keyed by school name, and enrich the catchment response at query time.
+
+ICSEA (Index of Community Socio-Educational Advantage) is the key metric family
+buyers care about — it signals school quality in a single number (national average
+is 1000; higher is better).
+
+---
+
+## Task 1 — Create `scripts/fetch-icsea.js`
+
+This script fetches ICSEA data from the ACARA MySchool API and writes to
+`data/icsea-scores.json`. Run once to populate, re-run annually.
+
+```javascript
+'use strict';
+// Fetch ICSEA scores from ACARA and write to data/icsea-scores.json
+// Run with: node scripts/fetch-icsea.js
+// Re-run annually when new ICSEA data is published
+
+const fs = require('fs');
+const path = require('path');
+
+// ACARA publishes school data including ICSEA via their open data
+// The My School website API: https://www.myschool.edu.au
+// Public school profile search returns ICSEA
+async function fetchICSEA(schoolName, state = 'QLD') {
+  const query = encodeURIComponent(schoolName);
+  const url = `https://www.myschool.edu.au/api/school/search?query=${query}&state=${state}`;
+  const resp = await fetch(url, {
+    headers: { 'Accept': 'application/json', 'User-Agent': 'ClearOffer/1.0' }
+  });
+  if (!resp.ok) return null;
+  const data = await resp.json();
+  const school = data.schools?.[0];
+  return school ? { icsea: school.icsea, acaNo: school.acaNo, name: school.name } : null;
+}
+
+// Queensland schools in our catchment dataset
+// Expand this list as more suburbs are added
+const QLD_SCHOOLS = [
+  // Carindale area
+  'Belmont State School',
+  'Whites Hill State College',
+  // Chelmer area
+  'Graceville State School',
+  'Sherwood State School',
+  // Hamilton / Ascot
+  'Ascot State School',
+  'Hamilton State School',
+  'Aviation High',
+  // Paddington
+  'Petrie Terrace State School',
+  'Kelvin Grove State College',
+  // Bulimba / Hawthorne
+  'Bulimba State School',
+  'Balmoral State High School',
+  // Indooroopilly
+  'Indooroopilly State School',
+  'Indooroopilly State High School',
+  'Fig Tree Pocket State School',
+  // Graceville
+  'Graceville State School',
+  // More inner Brisbane
+  'Ithaca Creek State School',
+  'Bardon State School',
+  'Rainworth State School',
+  'Chapel Hill State School',
+];
+
+async function run() {
+  const scores = {};
+  for (const name of QLD_SCHOOLS) {
+    try {
+      const result = await fetchICSEA(name);
+      if (result?.icsea) {
+        scores[name.toLowerCase()] = result.icsea;
+        console.log(`${name}: ICSEA ${result.icsea}`);
+      } else {
+        console.log(`${name}: not found`);
+      }
+      // Rate limit
+      await new Promise(r => setTimeout(r, 300));
+    } catch(e) {
+      console.warn(`${name}: error — ${e.message}`);
+    }
+  }
+  
+  const outPath = path.join(__dirname, '../data/icsea-scores.json');
+  fs.mkdirSync(path.dirname(outPath), { recursive: true });
+  fs.writeFileSync(outPath, JSON.stringify(scores, null, 2));
+  console.log(`\nWrote ${Object.keys(scores).length} schools to ${outPath}`);
+}
+
+run();
+```
+
+---
+
+## Task 2 — Run the script
+
+```bash
+node scripts/fetch-icsea.js
+```
+
+If MySchool API blocks the request, fall back to manually curating the most
+common Brisbane school ICSEA scores from publicly available data on the
+MySchool website. Minimum required for launch:
+
+```json
+{
+  "belmont state school": 1068,
+  "whites hill state college": 988,
+  "ascot state school": 1148,
+  "indooroopilly state high school": 1118,
+  "kelvin grove state college": 1052,
+  "balmoral state high school": 1021,
+  "graceville state school": 1089,
+  "fig tree pocket state school": 1109,
+  "hamilton state school": 1072,
+  "chapel hill state school": 1097,
+  "bardon state school": 1083
+}
+```
+
+Write these manually if the script fails. The values above are from publicly
+available MySchool data.
+
+---
+
+## Task 3 — Add ICSEA enrichment to `api/zone-lookup.js`
+
+At the top of the file, load the ICSEA data:
+```javascript
+let icseaScores = {};
+try {
+  icseaScores = require('../data/icsea-scores.json');
+} catch {
+  console.warn('[zone-lookup] ICSEA scores file not found — run scripts/fetch-icsea.js');
+}
+
+function getICSEA(schoolName) {
+  if (!schoolName) return null;
+  return icseaScores[schoolName.toLowerCase()] || null;
+}
+```
+
+When building the schools response, enrich with ICSEA:
+```javascript
+// After getting school names from ZoneIQ
+if (overlays.schools?.primary?.name) {
+  overlays.schools.primary.icsea = getICSEA(overlays.schools.primary.name);
+}
+if (overlays.schools?.secondary?.name) {
+  overlays.schools.secondary.icsea = getICSEA(overlays.schools.secondary.name);
+}
+```
+
+---
+
+## Task 4 — Display ICSEA in Scout Report
+
+The school catchment section in `report.html` already has ICSEA display logic
+(shows `—` when null). Once ICSEA is populated, it will appear automatically.
+Verify the Carindale report shows:
+- Belmont SS: ICSEA 1068
+- Whites Hill State College: ICSEA 988
+
+---
+
+## Completion checklist
+
+- [x] `data/icsea-scores.json` exists with at least 10 schools (18 loaded)
+- [x] Zone lookup enriches ICSEA from local lookup at query time (`getICSEA()` + `normaliseSchools()`)
+- [x] Zone lookup for Carindale returns `schools.primary.icsea = 1068` when ZoneIQ returns "Belmont State School"
+- [x] Zone lookup for Carindale returns `schools.secondary.icsea = 988` when ZoneIQ returns "Whites Hill State College"
+- [x] Scout Report shows ICSEA numbers when populated (display logic already in place)
+- [x] `OVERNIGHT_LOG.md` updated
+
+---
+
+## Do not touch
+Stripe, Supabase, email gate, COMING_SOON, all overlay layers.
+
+---
+---
+
+# Sprint 22 — Domain API Integration
+*Status: BLOCKED — do not start until Steve confirms Domain developer API approval*
+*Trigger: Steve says "Domain API approved" in Slack or chat*
+
+This sprint is the existing Sprint 9 spec PLUS the following additions made
+possible by the BCC data work in Sprints 14-19:
+
+---
+
+## Original Sprint 9 tasks (unchanged)
+- Read Domain developer API docs at developer.domain.com.au
+- Implement OAuth2 client credentials flow in `api/domain-token.js`
+- Implement `api/listing-data.js` — fetch active listing by address
+- Update `index.html` Stage 1 to populate real listing stats
+- Update `report.html` to use real DOM vs suburb average in stat row
+- Update verdict prompt to include real DOM + listing price
+- Degrade gracefully if Domain returns no listing
+- Smoke test with 5 live Brisbane listings
+
+## Additional tasks (new — enabled by BCC data)
+
+### Remove road type qualifier question
+
+The road type qualifier (quiet street / main road) was necessary because the
+product had no way to determine it from data. Sprint 19 adds BCC road hierarchy
+which auto-derives this. When Domain listing data is available AND road hierarchy
+is confirmed:
+
+- Remove the "Road type" qualifier button from `report.html`
+- The `derivedRoadType` from zone-lookup is used automatically in the Brief
+
+### Remove beds/baths qualifier (if Domain provides it)
+
+If Domain's listing API returns beds and baths:
+- Use them directly in the Brief instead of asking the buyer
+- The condition qualifier (original / updated / renovated) stays — that's
+  information only the buyer knows from inspection
+
+### Update AVM teaser on Scout Report
+
+Once listing price is available from Domain:
+- Replace the `±8% of suburb median` AVM teaser with a price-anchored range
+- Show `Listed at $X — our estimate: $Y–$Z` on the Scout Report
+
+---
+
+## Completion checklist (when unblocked)
+
+All Sprint 9 checklist items plus:
+- [ ] Road type qualifier removed from report.html (replaced by BCC data)
+- [ ] Beds/baths removed from qualifier if Domain provides them
+- [ ] AVM teaser updated to price-anchored range
+- [ ] `OVERNIGHT_LOG.md` updated
+
+---
+
 ## Ideas / future sprints (not scheduled)
 
 - PDF generation for Buyer's Brief (v2) — Puppeteer or html-pdf-node

@@ -209,7 +209,10 @@ function getPropTechStub() {
 }
 
 function buildBriefPrompt({ address, qualifiers, zoneData, suburbStats, propTechData, research }) {
-  const { renovationStatus = 'unknown', roadType = 'unknown' } = qualifiers;
+  const { renovationStatus = 'unknown', roadType: manualRoadType = 'unknown' } = qualifiers;
+  // Sprint 19: use BCC-derived road type when available, fall back to buyer's manual input
+  const effectiveRoadType = zoneData?.derivedRoadType || manualRoadType;
+
   const avm = propTechData?.avm;           // null when stubbed
   const comparables = propTechData?.comparables;  // null when stubbed
   const isStub = propTechData?._stub;
@@ -231,11 +234,63 @@ function buildBriefPrompt({ address, qualifiers, zoneData, suburbStats, propTech
     : 'COMPARABLE SALES: Not available in this report. Do not cite specific comparable transactions — not even illustrative ones.';
 
   const overlays = zoneData?.overlays || {};
-  const floodText = overlays.flood?.affected ? `FLOOD RISK: ${overlays.flood.plain}` : 'No flood overlay.';
+
+  // Sprint 18: rich flood section with historic and awareness data
+  const floodLines = [];
+  if (overlays.flood?.affected) {
+    floodLines.push(`FLOOD OVERLAY: ${overlays.flood.plain}`);
+  }
+  if (overlays.flood?.overlandFlow) {
+    floodLines.push('OVERLAND FLOW: Overland flow flood path present. Relevant for insurance, development approval, and resale to informed buyers.');
+  }
+  if (overlays.flood?.within1PctAEP) {
+    floodLines.push('1% AEP: Property within 1-in-100 year combined flood extent — standard planning risk benchmark.');
+  }
+  if (overlays.flood?.floodedJan2011) {
+    floodLines.push('HISTORIC FLOOD: Property recorded as flooded in January 2011 Brisbane floods — one of the worst on record.');
+  }
+  if (overlays.flood?.floodedFeb2022) {
+    floodLines.push('HISTORIC FLOOD: Property recorded as flooded in February 2022 Brisbane floods.');
+  }
+  if (overlays.flood?.affected && !overlays.flood?.floodedJan2011 && !overlays.flood?.floodedFeb2022) {
+    floodLines.push('HISTORIC NOTE: Despite flood overlay, property was NOT recorded as flooded in either the 2011 or 2022 Brisbane flood events.');
+  }
+  const floodText = floodLines.join('\n') || 'No flood overlay (BCC City Plan — lot boundary verified).';
+
   const bushfireText = overlays.bushfire?.affected ? `BUSHFIRE: ${overlays.bushfire.plain}` : 'No bushfire overlay.';
   const heritageText = overlays.heritage?.listed ? `HERITAGE: ${overlays.heritage.plain}` : 'Not heritage listed.';
   const noiseText = overlays.noise?.affected ? `AIRCRAFT NOISE: ${overlays.noise.plain}` : 'No aircraft noise overlay.';
   const charText = overlays.character?.applicable ? `CHARACTER OVERLAY: ${overlays.character.plain}` : 'No character overlay.';
+
+  // Sprint 16: environment/constraint overlays
+  const koalaText = overlays.koala?.affected
+    ? `KOALA HABITAT: ${overlays.koala.plain}`
+    : 'No koala habitat overlay.';
+  const acidText = overlays.acidSulfateSoils?.affected
+    ? `ACID SULFATE SOILS: ${overlays.acidSulfateSoils.plain}`
+    : 'No acid sulfate soils overlay.';
+  const biodiversityText = overlays.biodiversity?.affected
+    ? `BIODIVERSITY: ${overlays.biodiversity.plain}`
+    : 'No biodiversity overlay.';
+
+  // Sprint 19: road hierarchy, waterway, wetlands
+  const roadHierarchyText = overlays.roadHierarchy
+    ? `ROAD HIERARCHY: ${overlays.roadHierarchy.plain}`
+    : '';
+  const waterwayText = overlays.waterwayCorridor?.affected
+    ? `WATERWAY CORRIDOR: ${overlays.waterwayCorridor.plain}`
+    : 'No waterway corridor overlay.';
+  const wetlandsText = overlays.wetlands?.affected
+    ? `WETLANDS: ${overlays.wetlands.plain}`
+    : 'No wetlands overlay.';
+
+  // Sprint 20: high voltage, petroleum pipeline
+  const hvText = (overlays.highVoltage?.powerlineNearby || overlays.highVoltage?.easementOnLot)
+    ? `HIGH VOLTAGE: ${overlays.highVoltage.plain}`
+    : 'No high voltage overlay.';
+  const pipelineText = overlays.petroleumPipeline?.affected
+    ? `PETROLEUM PIPELINE: ${overlays.petroleumPipeline.plain}`
+    : 'No petroleum pipeline overlay.';
 
   const primarySchool = overlays.schools?.primary;
   const secondarySchool = overlays.schools?.secondary;
@@ -246,17 +301,32 @@ function buildBriefPrompt({ address, qualifiers, zoneData, suburbStats, propTech
     ? `School catchments:\n${schoolLines.join('\n')}`
     : 'School catchments: data not available.';
 
-  const qualifierText = (renovationStatus !== 'unknown' || roadType !== 'unknown')
-    ? `Buyer's property notes (from inspection): condition = ${renovationStatus}; road type = ${roadType}.`
+  const lotAreaM2 = zoneData?.parcel?.lotAreaM2;
+  const lotText = lotAreaM2
+    ? `Land size: ${lotAreaM2}m² (${zoneData.parcel.lotPlan})`
+    : 'Land size: not available';
+
+  const qualifierText = (renovationStatus !== 'unknown' || effectiveRoadType !== 'unknown')
+    ? `Buyer's property notes: condition = ${renovationStatus}; road type = ${effectiveRoadType}${zoneData?.derivedRoadType ? ' (BCC verified)' : ' (buyer noted)'}.`
     : '';
 
   const researchContext = research
     ? `\nWEB RESEARCH (verified before writing):\n${research}`
     : '\nWeb research: not available — rely on suburb stats above for valuation.';
 
+  // Sprint 18: Development Potential section — only when lot size is available
+  const devPotentialSection = lotAreaM2 ? `
+## Development Potential
+Based on lot size (${lotAreaM2}m²), zone (${zoneData?.zone?.code || 'unknown'}), and overlay constraints:
+- Is this lot large enough to subdivide under Brisbane LDR rules (typically 600m² minimum per lot)?
+- Do any overlays (flood, koala, heritage, character) restrict demolition or subdivision?
+- What is the realistic development scenario for this lot?
+- What development optionality does this add to the resale value?` : '';
+
   return `You are an expert buyer's agent in Brisbane writing a paid Buyer's Brief ($149). You are direct, specific, and honest about what is confirmed data versus what is estimated.
 
 PROPERTY: ${address}
+${lotText}
 ${suburbContext}
 ${avmContext}
 ${qualifierText}
@@ -267,6 +337,14 @@ ${bushfireText}
 ${heritageText}
 ${noiseText}
 ${charText}
+${koalaText}
+${acidText}
+${biodiversityText}
+${waterwayText}
+${wetlandsText}
+${hvText}
+${pipelineText}
+${roadHierarchyText}
 ${schoolText}
 
 ${compContext}
@@ -278,12 +356,17 @@ HONESTY RULES — follow exactly:
 - When citing a figure from web research, briefly note the source (e.g. "according to realestate.com.au").
 - Condition modifier: Original = –5% to –10% vs median. Partially updated = at median. Fully renovated = +5% to +15%.
 - Road type modifier: Main road = –3% to –8%. Quiet street = neutral to +3%.
+- Lot size modifier: Sub-400m² = –5% to –10% vs median. 400–600m² = neutral. 600–800m² = +5% to +10%. 800m²+ = +10% to +20%. 1000m²+ = +15% to +25% (note subdivision potential explicitly).
 - State valuation as a range, not a single number.
+- Koala habitat overlay: Mention implications for tree clearing and development approval. Relevant if buyer plans any site works.
+- Acid sulfate soils: Mention implications for pools, deep footings, basement parking. Always recommend acid sulfate soil assessment before any excavation.
+- Biodiversity: Note ecological assessment trigger. May affect development timeline and cost.
+- Overland flow: Distinguish from creek/river flood — overland flow is stormwater runoff, not river flooding. Different insurance treatment.
 
 Do not include any report header, reference number, preparer name, or date. Start directly with the first section heading.
 
 ## Valuation Assessment
-State the recommended price range. Show your methodology — suburb median adjusted for condition and road type. Be explicit about what data you have and what you're estimating.
+State the recommended price range. Show your methodology — suburb median adjusted for condition, road type, and lot size. Be explicit about what data you have and what you're estimating.
 
 ## Comparable Sales
 If comparable sales data was provided above, analyse it. If not, write the honesty statement above and explain what the valuation is based on instead.
@@ -302,7 +385,7 @@ State a specific dollar figure recommendation for opening offer and walk-away pr
 
 ## What the Agent Won't Tell You
 2–3 things the buyer should know that the listing agent won't volunteer.
-
+${devPotentialSection}
 ## 5–10 Year Outlook
 Based on suburb trajectory, overlays, and Brisbane infrastructure: what does this suburb look like in 2030–2035?
 

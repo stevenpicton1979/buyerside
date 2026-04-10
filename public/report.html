@@ -58,6 +58,14 @@
           <div class="stat__value" id="r-growth">—</div>
           <div class="stat__label">12-month growth</div>
         </div>
+        <div class="stat" id="r-lot-wrap" style="display:none;">
+          <div class="stat__value" id="r-lot-size">—</div>
+          <div class="stat__label">Land size</div>
+        </div>
+        <div class="stat" id="r-road-type-wrap" style="display:none;">
+          <div class="stat__value" id="r-road-type">—</div>
+          <div class="stat__label">Road type</div>
+        </div>
       </div>
 
       <!-- ===== OVERLAYS ===== -->
@@ -108,13 +116,76 @@
             <p id="noise-plain" style="font-size: 14px; margin: 0;"></p>
           </div>
           <!-- Character -->
-          <div id="character-block" style="margin-bottom: 4px;">
+          <div id="character-block" style="margin-bottom: 18px;">
             <div style="display:flex; align-items:center; gap: 10px; margin-bottom: 8px;">
               <span style="font-size: 20px;">🏠</span>
               <strong style="font-size: 15px; color: var(--text);">Character overlay</strong>
               <span id="character-pill" class="overlay-pill overlay-pill--ok">Not applicable</span>
             </div>
             <p id="character-plain" style="font-size: 14px; margin: 0;"></p>
+          </div>
+          <!-- Koala habitat -->
+          <div id="koala-block" style="margin-bottom: 18px; display:none;">
+            <div style="display:flex; align-items:center; gap: 10px; margin-bottom: 8px;">
+              <span style="font-size: 20px;">🐨</span>
+              <strong style="font-size: 15px; color: var(--text);">Koala habitat</strong>
+              <span id="koala-pill" class="overlay-pill overlay-pill--ok">No overlay</span>
+            </div>
+            <p id="koala-plain" style="font-size: 14px; margin: 0;"></p>
+          </div>
+          <!-- Acid sulfate soils -->
+          <div id="acid-block" style="margin-bottom: 18px; display:none;">
+            <div style="display:flex; align-items:center; gap: 10px; margin-bottom: 8px;">
+              <span style="font-size: 20px;">⚗️</span>
+              <strong style="font-size: 15px; color: var(--text);">Acid sulfate soils</strong>
+              <span id="acid-pill" class="overlay-pill overlay-pill--ok">No overlay</span>
+            </div>
+            <p id="acid-plain" style="font-size: 14px; margin: 0;"></p>
+          </div>
+          <!-- Biodiversity -->
+          <div id="biodiversity-block" style="margin-bottom: 18px; display:none;">
+            <div style="display:flex; align-items:center; gap: 10px; margin-bottom: 8px;">
+              <span style="font-size: 20px;">🌿</span>
+              <strong style="font-size: 15px; color: var(--text);">Biodiversity</strong>
+              <span id="biodiversity-pill" class="overlay-pill overlay-pill--ok">No overlay</span>
+            </div>
+            <p id="biodiversity-plain" style="font-size: 14px; margin: 0;"></p>
+          </div>
+          <!-- Waterway corridor -->
+          <div id="waterway-block" style="margin-bottom: 18px; display:none;">
+            <div style="display:flex; align-items:center; gap: 10px; margin-bottom: 8px;">
+              <span style="font-size: 20px;">🌊</span>
+              <strong style="font-size: 15px; color: var(--text);">Waterway corridor</strong>
+              <span id="waterway-pill" class="overlay-pill overlay-pill--ok">No overlay</span>
+            </div>
+            <p id="waterway-plain" style="font-size: 14px; margin: 0;"></p>
+          </div>
+          <!-- Wetlands -->
+          <div id="wetlands-block" style="margin-bottom: 18px; display:none;">
+            <div style="display:flex; align-items:center; gap: 10px; margin-bottom: 8px;">
+              <span style="font-size: 20px;">🪸</span>
+              <strong style="font-size: 15px; color: var(--text);">Wetlands</strong>
+              <span id="wetlands-pill" class="overlay-pill overlay-pill--ok">No overlay</span>
+            </div>
+            <p id="wetlands-plain" style="font-size: 14px; margin: 0;"></p>
+          </div>
+          <!-- High voltage -->
+          <div id="hv-block" style="margin-bottom: 18px; display:none;">
+            <div style="display:flex; align-items:center; gap: 10px; margin-bottom: 8px;">
+              <span style="font-size: 20px;">⚡</span>
+              <strong style="font-size: 15px; color: var(--text);">High voltage</strong>
+              <span id="hv-pill" class="overlay-pill overlay-pill--ok">No overlay</span>
+            </div>
+            <p id="hv-plain" style="font-size: 14px; margin: 0;"></p>
+          </div>
+          <!-- Petroleum pipeline -->
+          <div id="pipeline-block" style="margin-bottom: 4px; display:none;">
+            <div style="display:flex; align-items:center; gap: 10px; margin-bottom: 8px;">
+              <span style="font-size: 20px;">🛢️</span>
+              <strong style="font-size: 15px; color: var(--text);">Petroleum pipeline</strong>
+              <span id="pipeline-pill" class="overlay-pill overlay-pill--ok">No overlay</span>
+            </div>
+            <p id="pipeline-plain" style="font-size: 14px; margin: 0;"></p>
           </div>
           <!-- Unavailable notice -->
           <div id="overlays-unavail" class="alert alert--warn" style="display:none; margin-top: 14px;">
@@ -379,6 +450,8 @@
       // Populate overlays
       populateOverlays(zoneData);
       populateSchools(zoneData);
+      populateLotSize(zoneData);
+      populateRoadType(zoneData);
 
       // Populate comparables teaser
       populateComparables(stats);
@@ -504,11 +577,11 @@
       // Flood
       const flood = ov.flood;
       if (flood?.affected) {
-        setPill('flood-pill', flood.code || 'Flood overlay', 'warn');
+        setPill('flood-pill', flood.overlandFlow && !flood.categories?.length ? 'Overland flow' : 'Flood overlay', 'warn');
         document.getElementById('flood-plain').textContent = flood.plain || '';
         document.getElementById('flood-icon').textContent = '⚠️';
       } else {
-        document.getElementById('flood-plain').textContent = 'No flood overlay identified at this address.';
+        document.getElementById('flood-plain').textContent = flood?.plain || 'No flood overlay identified at this address.';
       }
 
       // Bushfire
@@ -536,7 +609,7 @@
         setPill('noise-pill', `ANEF ${noise.anef || '?'}`, severity);
         document.getElementById('noise-plain').textContent = noise.plain || '';
       } else {
-        document.getElementById('noise-plain').textContent = 'No aircraft noise overlay.';
+        document.getElementById('noise-plain').textContent = noise?.plain || 'No aircraft noise overlay.';
       }
 
       // Character
@@ -546,6 +619,83 @@
         document.getElementById('character-plain').textContent = char.plain || '';
       } else {
         document.getElementById('character-plain').textContent = 'No character overlay.';
+      }
+
+      // Sprint 16: Koala habitat
+      if (ov.koala) {
+        document.getElementById('koala-block').style.display = '';
+        if (ov.koala.affected) {
+          setPill('koala-pill', 'Applicable', 'warn');
+        } else {
+          setPill('koala-pill', 'No overlay', 'ok');
+        }
+        document.getElementById('koala-plain').textContent = ov.koala.plain || '';
+      }
+
+      // Sprint 16: Acid sulfate soils
+      if (ov.acidSulfateSoils) {
+        document.getElementById('acid-block').style.display = '';
+        if (ov.acidSulfateSoils.affected) {
+          setPill('acid-pill', 'Applicable', 'warn');
+        } else {
+          setPill('acid-pill', 'No overlay', 'ok');
+        }
+        document.getElementById('acid-plain').textContent = ov.acidSulfateSoils.plain || '';
+      }
+
+      // Sprint 16: Biodiversity
+      if (ov.biodiversity) {
+        document.getElementById('biodiversity-block').style.display = '';
+        if (ov.biodiversity.affected) {
+          setPill('biodiversity-pill', 'Applicable', 'warn');
+        } else {
+          setPill('biodiversity-pill', 'No overlay', 'ok');
+        }
+        document.getElementById('biodiversity-plain').textContent = ov.biodiversity.plain || '';
+      }
+
+      // Sprint 19: Waterway corridor
+      if (ov.waterwayCorridor) {
+        document.getElementById('waterway-block').style.display = '';
+        if (ov.waterwayCorridor.affected) {
+          setPill('waterway-pill', 'Applicable', 'warn');
+        } else {
+          setPill('waterway-pill', 'No overlay', 'ok');
+        }
+        document.getElementById('waterway-plain').textContent = ov.waterwayCorridor.plain || '';
+      }
+
+      // Sprint 19: Wetlands
+      if (ov.wetlands) {
+        document.getElementById('wetlands-block').style.display = '';
+        if (ov.wetlands.affected) {
+          setPill('wetlands-pill', 'Applicable', 'warn');
+        } else {
+          setPill('wetlands-pill', 'No overlay', 'ok');
+        }
+        document.getElementById('wetlands-plain').textContent = ov.wetlands.plain || '';
+      }
+
+      // Sprint 20: High voltage
+      if (ov.highVoltage) {
+        document.getElementById('hv-block').style.display = '';
+        if (ov.highVoltage.powerlineNearby || ov.highVoltage.easementOnLot) {
+          setPill('hv-pill', 'Affected', 'alert');
+        } else {
+          setPill('hv-pill', 'No overlay', 'ok');
+        }
+        document.getElementById('hv-plain').textContent = ov.highVoltage.plain || '';
+      }
+
+      // Sprint 20: Petroleum pipeline
+      if (ov.petroleumPipeline) {
+        document.getElementById('pipeline-block').style.display = '';
+        if (ov.petroleumPipeline.affected) {
+          setPill('pipeline-pill', 'Affected', 'warn');
+        } else {
+          setPill('pipeline-pill', 'No overlay', 'ok');
+        }
+        document.getElementById('pipeline-plain').textContent = ov.petroleumPipeline.plain || '';
       }
 
       if (zoneData.partial) {
@@ -574,6 +724,24 @@
         document.getElementById('school-secondary-icsea').textContent = schools.secondary.icsea || '—';
         document.getElementById('school-secondary-rank').textContent = schools.secondary.plain || '';
       }
+    }
+
+    function populateLotSize(zoneData) {
+      const lotSize = zoneData?.parcel?.lotAreaM2;
+      if (!lotSize) return;
+      document.getElementById('r-lot-size').textContent =
+        lotSize >= 10000
+          ? (lotSize / 10000).toFixed(2) + ' ha'
+          : lotSize.toLocaleString() + ' m²';
+      document.getElementById('r-lot-wrap').style.display = '';
+    }
+
+    function populateRoadType(zoneData) {
+      const roadType = zoneData?.derivedRoadType;
+      if (!roadType) return;
+      document.getElementById('r-road-type').textContent =
+        roadType === 'main_road' ? 'Main road' : 'Quiet street';
+      document.getElementById('r-road-type-wrap').style.display = '';
     }
 
     function populateComparables(stats) {
