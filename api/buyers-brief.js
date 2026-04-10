@@ -47,6 +47,9 @@ module.exports = async function handler(req, res) {
     fetchPropTechData(address),  // STUBBED until terms confirmed
   ]);
 
+  // Research pass — web search for suburb median and recent news
+  const research = await runResearchPass(address, suburbStats);
+
   // Build Claude prompt with all available data
   const prompt = buildBriefPrompt({
     address,
@@ -54,6 +57,7 @@ module.exports = async function handler(req, res) {
     zoneData,
     suburbStats,
     propTechData,
+    research,
   });
 
   // Stream Claude response
@@ -182,7 +186,7 @@ async function fetchSuburbStats(address) {
 async function fetchPropTechData(address) {
   if (!process.env.PROPTECH_DATA_API_KEY) {
     console.log('[buyers-brief] PropTechData API key not set — using stubs');
-    return getPropTechStub(address);
+    return getPropTechStub();
   }
   // TODO: implement real PropTechData calls
   // For now, return stub even if key present (safety until terms confirmed)
@@ -190,85 +194,62 @@ async function fetchPropTechData(address) {
   return getPropTechStub(address);
 }
 
-function getPropTechStub(address) {
-  const stats = getSuburbStats(address);
-  const median = stats?.median || 1000000;
-
+function getPropTechStub() {
   return {
     _stub: true,
-    avm: {
-      estimate: Math.round(median * 0.97),
-      low: Math.round(median * 0.90),
-      high: Math.round(median * 1.05),
-      confidence: 0.72,
-      method: 'comparable_sales',
-    },
-    comparables: [
-      { address: 'Comparable A (withheld)', soldPrice: Math.round(median * 0.95), soldDate: '2025-12-15', beds: 3, baths: 1, landSqm: 480 },
-      { address: 'Comparable B (withheld)', soldPrice: Math.round(median * 0.98), soldDate: '2025-11-28', beds: 3, baths: 2, landSqm: 510 },
-      { address: 'Comparable C (withheld)', soldPrice: Math.round(median * 1.01), soldDate: '2025-11-10', beds: 4, baths: 2, landSqm: 650 },
-    ],
-    suburbTimeseries: {
-      years: [2016,2017,2018,2019,2020,2021,2022,2023,2024,2025],
-      medians: [
-        Math.round(median*0.62), Math.round(median*0.66), Math.round(median*0.70),
-        Math.round(median*0.73), Math.round(median*0.77), Math.round(median*0.84),
-        Math.round(median*0.91), Math.round(median*0.95), Math.round(median*0.98),
-        median
-      ],
-    },
+    avm: null,
+    comparables: null,
+    suburbTimeseries: null,
   };
 }
 
-function buildBriefPrompt({ address, qualifiers, zoneData, suburbStats, propTechData }) {
+function buildBriefPrompt({ address, qualifiers, zoneData, suburbStats, propTechData, research }) {
   const { renovationStatus = 'unknown', roadType = 'unknown' } = qualifiers;
-  const avm = propTechData?.avm;
-  const comparables = propTechData?.comparables || [];
+  const avm = propTechData?.avm;           // null when stubbed
+  const comparables = propTechData?.comparables;  // null when stubbed
   const isStub = propTechData?._stub;
 
   const f = (n) => n ? `$${Number(n).toLocaleString('en-AU')}` : 'unknown';
 
   const suburbContext = suburbStats
-    ? `Suburb: ${suburbStats.suburb}. Median: ${f(suburbStats.median)}. Avg DOM: ${suburbStats.dom} days. 12-month growth: ${(suburbStats.growth12m*100).toFixed(1)}%. 10yr CAGR: ${(suburbStats.cagr10yr*100).toFixed(1)}%.`
-    : 'Suburb stats not available.';
+    ? `Suburb: ${suburbStats.suburb}. Median: ${f(suburbStats.median)}. Avg DOM: ${suburbStats.dom} days. 12-month growth: ${(suburbStats.growth12m * 100).toFixed(1)}%. 10yr CAGR: ${(suburbStats.cagr10yr * 100).toFixed(1)}%.`
+    : 'Suburb stats: not available from static table — use web research findings below.';
 
-  const avmContext = avm
-    ? `AVM estimate: ${f(avm.estimate)} (range: ${f(avm.low)}–${f(avm.high)}, confidence: ${Math.round(avm.confidence*100)}%).${isStub ? ' [NOTE: AVM is stubbed — replace with real PropTechData call]' : ''}`
-    : 'AVM not available.';
+  const avmContext = (!isStub && avm)
+    ? `AVM estimate: ${f(avm.estimate)} (range: ${f(avm.low)}–${f(avm.high)}, confidence: ${Math.round(avm.confidence * 100)}%).`
+    : 'AVM: not available — base valuation on suburb median from web research and overlay adjustments.';
+
+  const compContext = (!isStub && comparables && comparables.length > 0)
+    ? `COMPARABLE SALES (confirmed PropTechData):\n` + comparables.map((c, i) =>
+        `${i + 1}. ${c.address} — sold ${f(c.soldPrice)} on ${c.soldDate} (${c.beds}bd/${c.baths}ba, ${c.landSqm}m²)`
+      ).join('\n')
+    : 'COMPARABLE SALES: Not available in this report. Do not cite specific comparable transactions — not even illustrative ones.';
 
   const overlays = zoneData?.overlays || {};
-  const floodText = overlays.flood?.affected
-    ? `FLOOD RISK: ${overlays.flood.plain}`
-    : 'No flood overlay.';
-  const bushfireText = overlays.bushfire?.affected
-    ? `BUSHFIRE: ${overlays.bushfire.plain}`
-    : 'No bushfire overlay.';
-  const heritageText = overlays.heritage?.listed
-    ? `HERITAGE: ${overlays.heritage.plain}`
-    : 'Not heritage listed.';
-  const noiseText = overlays.noise?.affected
-    ? `AIRCRAFT NOISE: ${overlays.noise.plain}`
-    : 'No aircraft noise overlay.';
-  const charText = overlays.character?.applicable
-    ? `CHARACTER OVERLAY: ${overlays.character.plain}`
-    : 'No character overlay.';
+  const floodText = overlays.flood?.affected ? `FLOOD RISK: ${overlays.flood.plain}` : 'No flood overlay.';
+  const bushfireText = overlays.bushfire?.affected ? `BUSHFIRE: ${overlays.bushfire.plain}` : 'No bushfire overlay.';
+  const heritageText = overlays.heritage?.listed ? `HERITAGE: ${overlays.heritage.plain}` : 'Not heritage listed.';
+  const noiseText = overlays.noise?.affected ? `AIRCRAFT NOISE: ${overlays.noise.plain}` : 'No aircraft noise overlay.';
+  const charText = overlays.character?.applicable ? `CHARACTER OVERLAY: ${overlays.character.plain}` : 'No character overlay.';
 
   const primarySchool = overlays.schools?.primary;
-  const schoolText = primarySchool
-    ? `Primary school: ${primarySchool.name} (ICSEA ${primarySchool.icsea} — ${primarySchool.plain}).`
-    : 'School catchment data not available.';
+  const secondarySchool = overlays.schools?.secondary;
+  const schoolLines = [];
+  if (primarySchool) schoolLines.push(`Primary: ${primarySchool.name}${primarySchool.icsea ? ` (ICSEA ${primarySchool.icsea})` : ''}`);
+  if (secondarySchool) schoolLines.push(`Secondary: ${secondarySchool.name}${secondarySchool.icsea ? ` (ICSEA ${secondarySchool.icsea})` : ''}`);
+  const schoolText = schoolLines.length > 0
+    ? `School catchments:\n${schoolLines.join('\n')}`
+    : 'School catchments: data not available.';
 
-  const compText = comparables.length > 0
-    ? comparables.map((c, i) =>
-        `${i+1}. ${c.address} — sold ${f(c.soldPrice)} on ${c.soldDate} (${c.beds}bd/${c.baths}ba, ${c.landSqm}m²)`
-      ).join('\n')
-    : 'No comparable sales available.';
-
-  const qualifierText = renovationStatus !== 'unknown' || roadType !== 'unknown'
-    ? `Buyer notes: property condition = ${renovationStatus}; road type = ${roadType}.`
+  const qualifierText = (renovationStatus !== 'unknown' || roadType !== 'unknown')
+    ? `Buyer's property notes (from inspection): condition = ${renovationStatus}; road type = ${roadType}.`
     : '';
 
-  return `You are an expert buyer's agent in Brisbane writing a Buyer's Brief for a property purchaser. This is a paid $149 report. Do not include any report header, reference number, preparer name, or date. Start directly with the first section heading.
+  const researchContext = research
+    ? `\nWEB RESEARCH (verified before writing):\n${research}`
+    : '\nWeb research: not available — rely on suburb stats above for valuation.';
+
+  return `You are an expert buyer's agent in Brisbane writing a paid Buyer's Brief ($149). You are direct, specific, and honest about what is confirmed data versus what is estimated.
 
 PROPERTY: ${address}
 ${suburbContext}
@@ -283,36 +264,114 @@ ${noiseText}
 ${charText}
 ${schoolText}
 
-COMPARABLE SALES:
-${compText}
+${compContext}
+${researchContext}
 
-Write a complete Buyer's Brief in plain English. Structure it with these sections. Use the actual data provided — be specific with dollar figures, dates, and percentages. Do not hedge or waffle.
+HONESTY RULES — follow exactly:
+- If comparable sales says "Not available", do NOT cite specific sales, prices, addresses or dates — not even illustrative ones. Write instead: "Comparable sales data is not available in this report. The valuation range is based on suburb-level data and property-specific adjustments."
+- If AVM says "not available", state the valuation is based on suburb median from web research.
+- When citing a figure from web research, briefly note the source (e.g. "according to realestate.com.au").
+- Condition modifier: Original = –5% to –10% vs median. Partially updated = at median. Fully renovated = +5% to +15%.
+- Road type modifier: Main road = –3% to –8%. Quiet street = neutral to +3%.
+- State valuation as a range, not a single number.
+
+Do not include any report header, reference number, preparer name, or date. Start directly with the first section heading.
 
 ## Valuation Assessment
-Based on the AVM and comparable sales, what is this property worth? Give a specific recommended price range. Explain the key drivers.
+State the recommended price range. Show your methodology — suburb median adjusted for condition and road type. Be explicit about what data you have and what you're estimating.
 
-## What Comparable Sales Tell Us
-Analyse the comparable sales. What's the range? Are they above or below asking? What should the buyer read into them? Adjust for condition (${renovationStatus}) vs comparables.
+## Comparable Sales
+If comparable sales data was provided above, analyse it. If not, write the honesty statement above and explain what the valuation is based on instead.
 
 ## Risk Flags
-Cover each overlay present. What does the flood / bushfire / heritage / noise overlay mean practically for a buyer? What questions should they ask at settlement?
+Cover each overlay present in plain English. What does each mean practically? What questions should the buyer ask?
 
 ## Market Context
-What's happening in this suburb? Is it a buyer's or seller's market right now? What does the 12-month growth and DOM tell us?
+What's happening in this suburb? Buyer's or seller's market? What does DOM and growth data tell us?
 
 ## The Negotiation
-Based on DOM vs suburb average, comparable gap vs asking price, and active supply: what is the buyer's leverage? Give specific language the buyer can use.
+Based on suburb DOM and market conditions: what leverage does the buyer have? Give specific language they can use.
 
 ## Your Opening Offer
-State a specific dollar figure recommendation for the opening offer and the walk-away price. Show the reasoning clearly.
+State a specific dollar figure recommendation for opening offer and walk-away price. Show the reasoning.
 
 ## What the Agent Won't Tell You
-2–3 things this buyer should know that the listing agent won't volunteer.
+2–3 things the buyer should know that the listing agent won't volunteer.
 
 ## 5–10 Year Outlook
-Based on suburb trajectory, infrastructure, and Olympics/CRR catalyst: what does this suburb look like in 2030–2035?
+Based on suburb trajectory, overlays, and Brisbane infrastructure: what does this suburb look like in 2030–2035?
 
-Tone: confident, specific, like a sharp buyers agent who's done hundreds of deals in Brisbane. No disclaimers in the body of the report — the legal disclaimer appears separately.`;
+Tone: confident, specific, like a sharp buyer's agent who has done hundreds of Brisbane deals. No disclaimers in the body — the legal disclaimer appears separately.`;
+}
+
+function extractSuburb(address) {
+  if (!address) return null;
+  const match = address.match(/,\s*([^,]+?)\s*(QLD|NSW|VIC|SA|WA|TAS|ACT|NT)?\s*\d{4}/i);
+  return match?.[1]?.trim() || null;
+}
+
+function extractState(address) {
+  if (!address) return null;
+  const match = address.match(/\b(QLD|NSW|VIC|SA|WA|TAS|ACT|NT)\b/i);
+  return match?.[1]?.toUpperCase() || null;
+}
+
+async function runResearchPass(address, suburbStats) {
+  const suburb = extractSuburb(address);
+  const state = extractState(address) || 'QLD';
+
+  const researchPrompt = `You are researching an Australian property for a buyer's report. Use web search to find the following, then return a concise research summary.
+
+Property address: ${address}
+
+Search for:
+1. Current median house price for ${suburb || address}, ${state} — find a figure from propertyvalue.com.au, realestate.com.au suburb profiles, or domain.com.au suburb profiles. State the source and the figure.
+2. Any recent news affecting ${suburb || address} — infrastructure, rezoning, flood events, major development approvals (last 12 months).
+3. Any publicly available information about this specific property or street.
+
+Return your findings as a structured summary with these headings:
+- Suburb Median (source and figure)
+- Recent Suburb News
+- Property/Street Notes
+
+Be concise. If you cannot find something, say "Not found" — do not invent data.`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        messages: [{ role: 'user', content: researchPrompt }],
+      }),
+      signal: AbortSignal.timeout(30000),
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      console.warn('[buyers-brief] research pass failed:', response.status, err);
+      return null;
+    }
+
+    const data = await response.json();
+    const researchSummary = data.content
+      .filter(block => block.type === 'text')
+      .map(block => block.text)
+      .join('\n')
+      .trim();
+
+    console.log('[buyers-brief] research pass complete, length:', researchSummary.length);
+    return researchSummary || null;
+  } catch (err) {
+    console.warn('[buyers-brief] research pass error:', err.message);
+    return null;  // Non-fatal — Brief continues without research
+  }
 }
 
 async function* streamClaudeBrief(prompt) {
@@ -324,8 +383,8 @@ async function* streamClaudeBrief(prompt) {
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 2000,
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4000,
       stream: true,
       messages: [{ role: 'user', content: prompt }],
     }),

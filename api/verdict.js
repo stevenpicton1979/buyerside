@@ -85,6 +85,7 @@ Rules:
 - If flood overlay: mention it as a risk flag
 - Never say "fairly valued", "appears to be", or anything that sounds like a disclaimer
 - Sound like a smart friend texting you, not a report
+- CRITICAL: Never write "I don't have access to...", "Based on available data...", "As an AI...", or any meta-commentary. If data is limited, make your best assessment from what you have. The sentence must name a price or draw a conclusion.
 
 One sentence only:`;
 

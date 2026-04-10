@@ -576,16 +576,16 @@ vercel dev --listen 3001
 Test email: `steven.picton@googlemail.com` (has `converted_to_paid=true` — skip Stripe)
 Test address: any Brisbane address
 
-- [ ] Server log shows stub with `avm: null, comparables: null`
-- [ ] Server log shows `research pass complete` with non-zero length
-- [ ] Brief renders fully — all 8 sections present, not truncated
-- [ ] Brief does NOT cite specific comparable sale addresses, prices, or dates
-- [ ] Brief DOES include the honesty statement about comparables
-- [ ] Brief mentions a suburb median figure with a cited source
-- [ ] School catchments appear by name in the Brief
-- [ ] Error state div NOT visible on successful Brief completion
-- [ ] Verdict is a single sharp sentence with no meta-text
-- [ ] `OVERNIGHT_LOG.md` updated with timestamps
+- [x] Server log shows stub with `avm: null, comparables: null`
+- [x] Server log shows `research pass complete` with non-zero length
+- [x] Brief renders fully — all 8 sections present, not truncated
+- [x] Brief does NOT cite specific comparable sale addresses, prices, or dates
+- [x] Brief DOES include the honesty statement about comparables
+- [x] Brief mentions a suburb median figure with a cited source
+- [x] School catchments appear by name in the Brief
+- [x] Error state div NOT visible on successful Brief completion
+- [x] Verdict is a single sharp sentence with no meta-text
+- [x] `OVERNIGHT_LOG.md` updated with timestamps
 
 ---
 
