@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s \"https://services2.arcgis.com/dEKgZETqwmDAh1rP/arcgis/rest/services/Flood_overlay_Creek_waterway_flood_planning_area/FeatureServer/0/query?geometry=153.0736%2C-27.5017&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=OVL2_DESC%2COVL2_CAT&f=json\")",
+      "Bash(curl -s \"https://maps.googleapis.com/maps/api/geocode/json?address=6+Glenheaton+Ct+Carindale+QLD+4152&key=$\\(grep GOOGLE_GEOCODING_API_KEY /c/dev/buyerside/.env.local)",
+      "Bash(node -e \"const d=require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\); const r=JSON.parse\\(d\\); const loc=r.results?.[0]?.geometry?.location; console.log\\(JSON.stringify\\(loc\\)\\);\")",
+      "Bash(curl -s \"https://nominatim.openstreetmap.org/search?q=6+Glenheaton+Court+Carindale+QLD&format=json&limit=1\" -H \"User-Agent: ClearOffer/1.0 test\")",
+      "Bash(curl -s \"https://nominatim.openstreetmap.org/search?q=25+Racecourse+Rd+Hamilton+QLD&format=json&limit=1\" -H \"User-Agent: ClearOffer/1.0 test\")",
+      "Bash(node:*)",
+      "Bash(curl -s \"https://services2.arcgis.com/dEKgZETqwmDAh1rP/arcgis/rest/services/Property_boundaries_Parcel/FeatureServer/0/query?where=HOUSE_NUMBER%3D14%20AND%20UPPER\\(SUBURB\\)%3D'CHELMER'&outFields=LOTPLAN%2CLOT_AREA%2CCORRIDOR_NAME%2CSUBURB%2CPAR_IND_DESC&returnGeometry=false&f=json\")",
+      "Bash(curl -s \"https://services2.arcgis.com/dEKgZETqwmDAh1rP/arcgis/rest/services/Property_boundaries_Parcel/FeatureServer/0/query?where=HOUSE_NUMBER%3D14%20AND%20UPPER\\(CORRIDOR_NAME\\)%3D'RIVERVIEW'%20AND%20UPPER\\(SUBURB\\)%3D'CHELMER'&outFields=LOTPLAN%2CLOT_AREA%2CCORRIDOR_NAME%2CSUBURB%2CPAR_IND_DESC&returnGeometry=false&f=json\")",
+      "Bash(curl -s \"https://services2.arcgis.com/dEKgZETqwmDAh1rP/arcgis/rest/services/Property_boundaries_Parcel/FeatureServer/0/query?where=HOUSE_NUMBER%3D14%20AND%20UPPER\\(CORRIDOR_NAME\\)%20LIKE%20'RIVERVIEW%25'%20AND%20UPPER\\(SUBURB\\)%3D'CHELMER'&outFields=LOTPLAN%2CLOT_AREA%2CCORRIDOR_NAME%2CSUBURB%2CPAR_IND_DESC&returnGeometry=false&f=json\")",
+      "Bash(curl -s \"https://services2.arcgis.com/dEKgZETqwmDAh1rP/arcgis/rest/services/Property_boundaries_Parcel/FeatureServer/0/query?where=HOUSE_NUMBER%3D14%20AND%20UPPER\\(SUBURB\\)%20LIKE%20'CHELMER%25'&outFields=LOTPLAN%2CLOT_AREA%2CCORRIDOR_NAME%2CSUBURB%2CPAR_IND_DESC&returnGeometry=false&f=json\")",
+      "Bash(curl -s \"https://services2.arcgis.com/dEKgZETqwmDAh1rP/arcgis/rest/services/Property_boundaries_Parcel/FeatureServer/0/query?where=HOUSE_NUMBER%3D14%20AND%20UPPER\\(SUBURB\\)%3D'CHELMER'&outFields=LOTPLAN%2CLOT_AREA%2CCORRIDOR_NAME%2CSUBURB%2CPAR_IND_DESC%2CHOUSE_NUMBER&returnGeometry=false&f=json&resultRecordCount=50\")",
+      "Bash(curl -s \"https://services2.arcgis.com/dEKgZETqwmDAh1rP/arcgis/rest/services/Property_boundaries_Parcel/FeatureServer/0/query?where=UPPER\\(CORRIDOR_NAME\\)%20LIKE%20'RIVERVIEW%25'&outFields=LOTPLAN%2CLOT_AREA%2CCORRIDOR_NAME%2CSUBURB%2CPAR_IND_DESC%2CHOUSE_NUMBER&returnGeometry=false&f=json&resultRecordCount=10\")",
+      "Bash(curl -s \"https://services2.arcgis.com/dEKgZETqwmDAh1rP/arcgis/rest/services/Property_boundaries_Parcel/FeatureServer/0/query?where=HOUSE_NUMBER%3D14%20AND%20UPPER\\(CORRIDOR_NAME\\)%20LIKE%20'%25RIVERVIEW%25TCE%25'&outFields=LOTPLAN%2CLOT_AREA%2CCORRIDOR_NAME%2CSUBURB&returnGeometry=false&f=json\")",
+      "Bash(curl -s \"https://services2.arcgis.com/dEKgZETqwmDAh1rP/arcgis/rest/services/Property_boundaries_Parcel/FeatureServer/0/query?where=UPPER\\(CORRIDOR_NAME\\)%20LIKE%20'RIVERVIEW%25'%20AND%20UPPER\\(SUBURB\\)%20LIKE%20'%25CHELM%25'&outFields=LOTPLAN%2CHOUSE_NUMBER%2CCORRIDOR_NAME%2CSUBURB&returnGeometry=false&f=json&resultRecordCount=5\")",
+      "Bash(curl -s \"https://services2.arcgis.com/dEKgZETqwmDAh1rP/arcgis/rest/services/Property_boundaries_Parcel/FeatureServer/0/query?where=HOUSE_NUMBER%3D14%20AND%20UPPER\\(CORRIDOR_NAME\\)%3D'RIVERVIEW'&outFields=LOTPLAN%2CHOUSE_NUMBER%2CCORRIDOR_NAME%2CSUBURB%2CPAR_IND_DESC&returnGeometry=false&f=json&resultRecordCount=20\")",
+      "Bash(curl -s \"https://services2.arcgis.com/dEKgZETqwmDAh1rP/arcgis/rest/services/Property_boundaries_Parcel/FeatureServer/0/query?where=UPPER\\(SUBURB\\)%3D'CHELMER'%20AND%20UPPER\\(CORRIDOR_NAME\\)%20LIKE%20'RIVER%25'&outFields=CORRIDOR_NAME%2CHOUSE_NUMBER&returnGeometry=false&f=json&resultRecordCount=10\")",
+      "Bash(curl -s \"https://services2.arcgis.com/dEKgZETqwmDAh1rP/arcgis/rest/services/Property_boundaries_Parcel/FeatureServer/0/query?where=UPPER\\(SUBURB\\)%3D'CHELMER'&outFields=CORRIDOR_NAME&returnGeometry=false&f=json&resultRecordCount=5\")",
+      "Bash(curl -s \"https://services2.arcgis.com/dEKgZETqwmDAh1rP/arcgis/rest/services/Property_boundaries_Parcel/FeatureServer/0/query?where=HOUSE_NUMBER%3D25%20AND%20UPPER\\(SUBURB\\)%3D'HAMILTON'&outFields=CORRIDOR_NAME%2CSUBURB%2CPAR_IND_DESC&returnGeometry=false&f=json&resultRecordCount=10\")",
+      "Bash(curl -s \"https://services2.arcgis.com/dEKgZETqwmDAh1rP/arcgis/rest/services/Property_boundaries_Parcel/FeatureServer/0/query?where=UPPER\\(CORRIDOR_NAME\\)%3D'RACECOURSE'%20AND%20UPPER\\(SUBURB\\)%3D'HAMILTON'&outFields=CORRIDOR_NAME%2CSUBURB%2CHOUSE_NUMBER%2CPAR_IND_DESC&returnGeometry=false&f=json&resultRecordCount=5\")",
+      "Bash(curl -s \"https://services2.arcgis.com/dEKgZETqwmDAh1rP/arcgis/rest/services/Property_boundaries_Parcel/FeatureServer/0/query?where=UPPER\\(CORRIDOR_NAME\\)%3D'RACECOURSE'%20AND%20UPPER\\(SUBURB\\)%3D'HAMILTON'&outFields=CORRIDOR_NAME%2CSUBURB%2CHOUSE_NUMBER%2CPAR_IND_DESC&returnGeometry=false&f=json&resultRecordCount=50\")",
+      "Bash(sort -t: -k2 -n)",
+      "Bash(curl -s \"https://services2.arcgis.com/dEKgZETqwmDAh1rP/arcgis/rest/services/Property_boundaries_Parcel/FeatureServer/0/query?where=UPPER\\(SUBURB\\)%3D'CHELMER'&outFields=CORRIDOR_NAME%2CHOUSE_NUMBER%2CPAR_IND_DESC&returnGeometry=false&f=json&resultRecordCount=200\")",
+      "Bash(curl -s \"https://services2.arcgis.com/dEKgZETqwmDAh1rP/arcgis/rest/services/Property_boundaries_Parcel/FeatureServer/0/query?where=UPPER\\(CORRIDOR_NAME\\)%3D'WHARF'%20AND%20UPPER\\(SUBURB\\)%3D'CHELMER'&outFields=CORRIDOR_NAME%2CHOUSE_NUMBER%2CPAR_IND_DESC%2CLOTPLAN&returnGeometry=false&f=json&resultRecordCount=10\")",
+      "Bash(grep -o '[-0-9.]*,[-0-9.]*$')",
+      "Bash(curl -s \"https://services2.arcgis.com/dEKgZETqwmDAh1rP/arcgis/rest/services/Flood_overlay_Brisbane_River_flood_planning_area/FeatureServer/0/query?geometry=152.973725094827%2C-27.5083565643721&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=OVL2_DESC%2COVL2_CAT&f=json\")",
+      "Bash(vercel dev:*)",
+      "Bash(curl -s \"http://localhost:3001/api/zone-lookup?address=6%20Glenheaton%20Ct%20Carindale%20QLD%204152\")",
+      "Bash(curl -s \"http://localhost:3002/api/zone-lookup?address=6%20Glenheaton%20Ct%20Carindale%20QLD%204152\")",
+      "Bash(pkill -f \"vercel dev\")"
+    ]
+  }
+}
