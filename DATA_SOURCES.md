@@ -1,6 +1,6 @@
 # ClearOffer — Data Sources & Field Inventory
 *Repo: stevenpicton1979/portfoliostate*
-*Last updated: 11 April 2026*
+*Last updated: 11 April 2026 — Sprint 23 (GNAF/Addressr)*
 *Read this file before any sprint that touches data ingestion, overlay queries, or API calls.*
 
 ---
@@ -190,7 +190,47 @@ Notes:      Places API must be enabled on GCP project (done April 2026).
             Autocomplete appends ", Australia" to suggestions — stripped client-side
             before passing to zone-lookup. See index.html autocomplete handler.
             Both Geocoding API and Places API must be enabled — separate toggles on GCP.
+            Used for autocomplete UX only — lat/lng now sourced from Addressr (GNAF).
 ```
+
+---
+
+### SOURCE: Addressr (GNAF API)
+```
+Base URL:   https://api.addressr.io
+Auth:       None — free, no API key, no documented rate limits
+CORS:       Open — works from browser and server
+Coverage:   National — 15.9M addresses, all states and territories
+Update:     Quarterly (follows GNAF release cycle)
+Cost:       Free (open source, Apache 2.0)
+Sprint:     23 (LIVE)
+Notes:      Two-call pattern:
+              1. GET /addresses?q={address}  → returns [{ sla, pid, score }]
+              2. GET /addresses/{pid}        → returns geocoding.geocodes[].lat/lng
+            Property centroid from land registry — more accurate than Google
+            geocoding interpolation for lot boundary spatial queries.
+            Run in parallel with BCC parcel fetch — no added wall-clock latency.
+            Google Places retained for autocomplete UX (location-aware, faster).
+            GNAF PID is Australia's authoritative address identifier.
+```
+
+**Confirmed test (6 Glenheaton Court, Carindale 4152):**
+```json
+{
+  "pid": "GAQLD156422713",
+  "sla": "6 GLENHEATON CT, CARINDALE QLD 4152",
+  "lat": -27.51074722,
+  "lng": 153.10155388,
+  "geocodeType": "PROPERTY CENTROID",
+  "reliability": "WITHIN ADDRESS SITE BOUNDARY OR ACCESS POINT"
+}
+```
+
+| Field | Endpoint pattern | Sprint | Status |
+|-------|-----------------|--------|--------|
+| GNAF PID | `GET /addresses?q={address}` → `results[0].pid` | 23 | LIVE |
+| Property centroid lat | `GET /addresses/{pid}` → `geocoding.geocodes[0].latitude` | 23 | LIVE |
+| Property centroid lng | `GET /addresses/{pid}` → `geocoding.geocodes[0].longitude` | 23 | LIVE |
 
 ---
 
@@ -330,32 +370,34 @@ Notes:      renovationStatus is permanent — only the buyer knows this from ins
 | 35 | Comparable sales (fixture) | Brief valuation | Dev fixture | 10 Brisbane suburbs |
 | 36 | Condition qualifier | Brief valuation modifier | Buyer input | National |
 | 37 | Road type qualifier | Brief valuation modifier (being replaced) | Buyer input / BCC | Brisbane: BCC. Others: manual |
+| 38 | GNAF PID | Internal / Brief traceability | Addressr | National |
+| 39 | Property centroid lat/lng (GNAF) | BCC line-layer queries (road hierarchy, HV powerlines) | Addressr | National |
 
 ### Blocked (LIVE when unblocked)
 
 | # | Field | Sprint | Blocker |
 |---|-------|--------|---------|
-| 38 | AVM (real) | 10 | PropTechData terms |
-| 39 | Comparable sales (real) | 10 | PropTechData VG licence |
-| 40 | Suburb stats (live) | 17 | PropTechData terms |
-| 41 | Suburb 10yr timeseries | 10 | PropTechData terms |
-| 42 | Listed price | 22 | Domain API approval |
-| 43 | Days on market (actual listing) | 22 | Domain API approval |
-| 44 | Beds / baths | 22 | Domain API approval |
-| 45 | Agent name | 22 | Domain API approval |
+| 40 | AVM (real) | 10 | PropTechData terms |
+| 41 | Comparable sales (real) | 10 | PropTechData VG licence |
+| 42 | Suburb stats (live) | 17 | PropTechData terms |
+| 43 | Suburb 10yr timeseries | 10 | PropTechData terms |
+| 44 | Listed price | 22 | Domain API approval |
+| 45 | Days on market (actual listing) | 22 | Domain API approval |
+| 46 | Beds / baths | 22 | Domain API approval |
+| 47 | Agent name | 22 | Domain API approval |
 
 ### Not sourced (no public API or not yet investigated)
 
 | # | Field | Notes |
 |---|-------|-------|
-| 46 | Operational flight path noise | No API. Airservices WebTrak is browser-only. Permanent gap. |
-| 47 | Building age / construction year | No public API. Sometimes in Domain listing description. |
-| 48 | Title type (freehold/leasehold/community) | QLD Land Title Register — paid access via CITEC. |
-| 49 | Easements on title | Paid title search. InfoTrack email sent 10 April. |
-| 50 | Body corporate levies | No public API. PropTechData may have. |
-| 51 | Contaminated land overlay | BCC has layer but service name not confirmed. Investigate. |
-| 52 | Landslide overlay | BCC `Landslide_overlay` accessible but returns no hits for flat suburbs. Add to fetchBCCOverlays() — relevant for hilly suburbs (Bardon, Paddington, Taringa, Red Hill). |
-| 53 | Rental yield / history | PropTechData has this (when confirmed). |
+| 48 | Operational flight path noise | No API. Airservices WebTrak is browser-only. Permanent gap. |
+| 49 | Building age / construction year | No public API. Sometimes in Domain listing description. |
+| 50 | Title type (freehold/leasehold/community) | QLD Land Title Register — paid access via CITEC. |
+| 51 | Easements on title | Paid title search. InfoTrack email sent 10 April. |
+| 52 | Body corporate levies | No public API. PropTechData may have. |
+| 53 | Contaminated land overlay | BCC has layer but service name not confirmed. Investigate. |
+| 54 | Landslide overlay | BCC `Landslide_overlay` accessible but returns no hits for flat suburbs. Add to fetchBCCOverlays() — relevant for hilly suburbs (Bardon, Paddington, Taringa, Red Hill). |
+| 55 | Rental yield / history | PropTechData has this (when confirmed). |
 
 ---
 

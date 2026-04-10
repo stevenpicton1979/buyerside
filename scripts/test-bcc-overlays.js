@@ -1,5 +1,5 @@
 'use strict';
-// Test script for BCC overlay APIs
+// Test script for BCC overlay APIs + GNAF resolution (Sprint 23)
 // Run with: node scripts/test-bcc-overlays.js
 // Tests the exact API pattern used in api/zone-lookup.js
 
@@ -203,7 +203,86 @@ async function runTests() {
   }
 
   console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);
-  process.exit(failed > 0 ? 1 : 0);
+  return failed;
 }
 
-runTests();
+// ---- Sprint 23: GNAF resolution tests ----
+
+const GNAF_TESTS = [
+  {
+    label: '6 Glenheaton Court, Carindale — GNAF PID + centroid',
+    address: '6 Glenheaton Court, Carindale QLD 4152',
+    expected: {
+      gnafPid: 'GAQLD156422713',
+      latMin: -27.52, latMax: -27.50,
+      lngMin: 153.09, lngMax: 153.11,
+    },
+  },
+  {
+    label: '26 Racecourse Rd, Hamilton — GNAF resolves prestige address',
+    address: '26 Racecourse Rd, Hamilton QLD 4007',
+    expected: {
+      latMin: -27.44, latMax: -27.42,
+      lngMin: 153.05, lngMax: 153.07,
+    },
+  },
+];
+
+async function resolveGNAF(address) {
+  const clean = address.replace(/,?\s*Australia$/i, '').trim();
+  const searchResp = await fetch(`https://api.addressr.io/addresses?q=${encodeURIComponent(clean)}`, { signal: AbortSignal.timeout(5000) });
+  if (!searchResp.ok) throw new Error(`Addressr search ${searchResp.status}`);
+  const results = await searchResp.json();
+  if (!results?.length) return null;
+  const pid = results[0].pid;
+  if (!pid) return null;
+  const detailResp = await fetch(`https://api.addressr.io/addresses/${pid}`, { signal: AbortSignal.timeout(5000) });
+  if (!detailResp.ok) throw new Error(`Addressr detail ${detailResp.status}`);
+  const detail = await detailResp.json();
+  const geocode = detail.geocoding?.geocodes?.find(g => g.default) || detail.geocoding?.geocodes?.[0];
+  if (!geocode?.latitude || !geocode?.longitude) return null;
+  return { pid, lat: geocode.latitude, lng: geocode.longitude, geocodeType: geocode.type?.name };
+}
+
+async function runGNAFTests() {
+  console.log('\n=== GNAF Resolution Tests (Sprint 23) ===');
+  let passed = 0;
+  let failed = 0;
+
+  for (const test of GNAF_TESTS) {
+    console.log(`\n--- ${test.label} ---`);
+    try {
+      const gnaf = await resolveGNAF(test.address);
+      if (!gnaf) { console.log('  FAIL: no GNAF result'); failed++; continue; }
+
+      console.log(`  PID:  ${gnaf.pid}`);
+      console.log(`  Lat:  ${gnaf.lat}`);
+      console.log(`  Lng:  ${gnaf.lng}`);
+      console.log(`  Type: ${gnaf.geocodeType}`);
+
+      const e = test.expected;
+      const checks = [
+        e.gnafPid !== undefined ? gnaf.pid === e.gnafPid : null,
+        e.latMin  !== undefined ? gnaf.lat >= e.latMin && gnaf.lat <= e.latMax : null,
+        e.lngMin  !== undefined ? gnaf.lng >= e.lngMin && gnaf.lng <= e.lngMax : null,
+      ].filter(c => c !== null);
+
+      const allPassed = checks.every(c => c === true);
+      if (allPassed) { console.log('  PASS'); passed++; }
+      else           { console.log('  FAIL — check values above vs expected:', JSON.stringify(e)); failed++; }
+    } catch (err) {
+      console.log(`  ERROR: ${err.message}`);
+      failed++;
+    }
+  }
+  console.log(`\n=== GNAF Results: ${passed} passed, ${failed} failed ===`);
+  return failed;
+}
+
+async function main() {
+  const bccFailed  = await runTests();
+  const gnafFailed = await runGNAFTests();
+  process.exit((bccFailed + gnafFailed) > 0 ? 1 : 0);
+}
+
+main();

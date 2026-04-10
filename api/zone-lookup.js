@@ -35,6 +35,51 @@ function getICSEA(schoolName) {
   return icseaScores[expanded] || null;
 }
 
+// Sprint 23: GNAF address resolution via Addressr API (api.addressr.io)
+// Returns GNAF PID + authoritative property centroid (lat/lng).
+// Non-fatal — if Addressr is unavailable, BCC pipeline continues with lot centroid.
+async function resolveGNAF(address) {
+  if (!address) return null;
+  // Strip trailing ", Australia" — Addressr handles state/postcode fine
+  const clean = address.replace(/,?\s*Australia$/i, '').trim();
+  try {
+    const searchResp = await fetch(
+      `https://api.addressr.io/addresses?q=${encodeURIComponent(clean)}`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+    if (!searchResp.ok) throw new Error(`Addressr search ${searchResp.status}`);
+    const results = await searchResp.json();
+    if (!results?.length) {
+      console.warn('[zone-lookup] GNAF: no results for:', clean);
+      return null;
+    }
+    const pid = results[0].pid;
+    if (!pid) return null;
+
+    const detailResp = await fetch(
+      `https://api.addressr.io/addresses/${pid}`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+    if (!detailResp.ok) throw new Error(`Addressr detail ${detailResp.status}`);
+    const detail = await detailResp.json();
+
+    const geocode = detail.geocoding?.geocodes?.find(g => g.default) || detail.geocoding?.geocodes?.[0];
+    if (!geocode?.latitude || !geocode?.longitude) return null;
+
+    console.log('[zone-lookup] GNAF resolved:', pid, geocode.latitude, geocode.longitude);
+    return {
+      pid,
+      lat:          geocode.latitude,
+      lng:          geocode.longitude,
+      geocodeType:  geocode.type?.name || 'PROPERTY CENTROID',
+      reliability:  geocode.reliability?.code,
+    };
+  } catch (err) {
+    console.warn('[zone-lookup] GNAF resolve error (non-fatal):', err.message);
+    return null;
+  }
+}
+
 module.exports = async function handler(req, res) {
   if (handleCors(req, res)) return;
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
@@ -47,14 +92,18 @@ module.exports = async function handler(req, res) {
   try {
     const addr = address.trim();
 
-    // Run ZoneIQ and BCC parcel lookup in parallel
-    const [result, bccParcel] = await Promise.all([
+    // Run ZoneIQ, GNAF resolution, and BCC parcel lookup in parallel (Sprint 23)
+    const [result, gnaf, bccParcel] = await Promise.all([
       fetchZoneIQ(addr),
+      resolveGNAF(addr),
       fetchBCCParcel(addr),
     ]);
 
+    // GNAF centroid overrides lot centroid for line-layer distance queries when available
+    const centroidOverride = gnaf ? { x: gnaf.lng, y: gnaf.lat } : null;
+
     // Fetch all BCC overlays using lot-boundary polygon intersection
-    const bccOverlays = bccParcel?.geometry ? await fetchBCCOverlays(bccParcel.geometry) : null;
+    const bccOverlays = bccParcel?.geometry ? await fetchBCCOverlays(bccParcel.geometry, centroidOverride) : null;
 
     // BCC overlays override ZoneIQ for all planning overlay data
     if (bccOverlays) {
@@ -85,6 +134,14 @@ module.exports = async function handler(req, res) {
         lotAreaM2: bccParcel.lotArea,
       };
     }
+
+    // Sprint 23: attach GNAF resolution to response
+    result.gnaf = gnaf ? {
+      pid:          gnaf.pid,
+      lat:          gnaf.lat,
+      lng:          gnaf.lng,
+      geocodeType:  gnaf.geocodeType,
+    } : null;
 
     // Sprint 21: Enrich school ICSEA from local lookup data
     if (result.overlays?.schools?.primary?.name) {
@@ -245,7 +302,7 @@ function getLotCentroid(geometry) {
   return { x: sumX / ring.length, y: sumY / ring.length };
 }
 
-async function fetchBCCOverlays(geometry) {
+async function fetchBCCOverlays(geometry, centroidOverride = null) {
   if (!geometry?.rings) return null;
 
   const BASE = 'https://services2.arcgis.com/dEKgZETqwmDAh1rP/arcgis/rest/services';
@@ -254,7 +311,8 @@ async function fetchBCCOverlays(geometry) {
   // Sprint 15: flood awareness layers use different field names — request all fields
   const awarenessParams = `geometry=${geomStr}&geometryType=esriGeometryPolygon&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&returnGeometry=false&f=json`;
 
-  const centroid = getLotCentroid(geometry);
+  // Sprint 23: prefer GNAF centroid (authoritative property centroid) over computed lot centroid
+  const centroid = centroidOverride || getLotCentroid(geometry);
   const timeout = { signal: AbortSignal.timeout(12000) };
 
   // All polygon overlay layers — run in parallel

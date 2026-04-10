@@ -2428,6 +2428,297 @@ All Sprint 9 checklist items plus:
 
 ---
 
+# Sprint 23 — GNAF Address Resolution via Addressr
+*Repo: stevenpicton1979/buyerside (main branch)*
+*Depends on: Sprint 14 complete (fetchBCCParcel, fetchBCCOverlays in place)*
+*Log all changes to `OVERNIGHT_LOG.md` with timestamps*
+
+---
+
+## Background
+
+ClearOffer currently uses Google Places for autocomplete and Google Geocoding
+(via ZoneIQ internally) for lat/lng coordinates. The BCC overlay queries in
+Sprints 14-20 use the `parseAddress()` WHERE clause approach to avoid depending
+on geocoded coordinates — but the lat/lng for line-layer queries (road hierarchy,
+HV powerlines) still depends on Google's interpolated estimates.
+
+**Addressr** (api.addressr.io) is a free open-source GNAF API:
+- No API key, no auth, no cost, no documented rate limits
+- Returns the GNAF PID — Australia's authoritative address identifier
+- Resolving the PID gives a property centroid lat/lng from the land registry
+- More accurate for lot boundary spatial queries than Google interpolation
+- National coverage, CORS-open, works server-side and browser-side
+
+**Architecture:** Keep Google Places for autocomplete UX (location-aware,
+better suggestions). After user selects an address, silently resolve it via
+Addressr to get the authoritative GNAF PID and lat/lng. Use these for all
+BCC overlay queries that require coordinates (road hierarchy centroid buffer,
+HV powerline centroid buffer). Fall back gracefully if Addressr fails.
+
+**Confirmed test (6 Glenheaton Court, Carindale 4152):**
+```
+Search:  GET https://api.addressr.io/addresses?q=6+Glenheaton+Court+Carindale
+Result:  { sla: "6 GLENHEATON CT, CARINDALE QLD 4152", pid: "GAQLD156422713" }
+
+Resolve: GET https://api.addressr.io/addresses/GAQLD156422713
+Result:  { lat: -27.51074722, lng: 153.10155388, geocodeType: "PROPERTY CENTROID",
+           reliability: "WITHIN ADDRESS SITE BOUNDARY OR ACCESS POINT" }
+```
+
+Response time: 212–455ms per call, two calls = ~500–900ms total. Run in parallel
+with BCC parcel fetch so it adds no wall-clock time.
+
+---
+
+## Task 1 — Add `resolveGNAF(address)` to `api/zone-lookup.js`
+
+```javascript
+async function resolveGNAF(address) {
+  if (!address) return null;
+
+  // Strip ', Australia' and trailing state/postcode added by Google Places
+  const clean = address.replace(/,?\s*Australia$/i, '').trim();
+
+  try {
+    // Step 1: Search for PID
+    const searchResp = await fetch(
+      `https://api.addressr.io/addresses?q=${encodeURIComponent(clean)}`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+    if (!searchResp.ok) throw new Error(`Addressr search ${searchResp.status}`);
+    const results = await searchResp.json();
+    if (!results?.length) {
+      console.warn('[zone-lookup] GNAF: no results for:', clean);
+      return null;
+    }
+
+    const pid = results[0].pid;
+    if (!pid) return null;
+
+    // Step 2: Resolve PID to lat/lng
+    const detailResp = await fetch(
+      `https://api.addressr.io/addresses/${pid}`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+    if (!detailResp.ok) throw new Error(`Addressr detail ${detailResp.status}`);
+    const detail = await detailResp.json();
+
+    const geocode = detail.geocoding?.geocodes?.find(g => g.default)
+                 || detail.geocoding?.geocodes?.[0];
+    if (!geocode?.latitude || !geocode?.longitude) return null;
+
+    console.log('[zone-lookup] GNAF resolved:', pid, geocode.latitude, geocode.longitude);
+    return {
+      pid,
+      lat: geocode.latitude,
+      lng: geocode.longitude,
+      geocodeType: geocode.type?.name || 'PROPERTY CENTROID',
+      reliability: geocode.reliability?.code,
+    };
+  } catch (err) {
+    console.warn('[zone-lookup] GNAF resolve error (non-fatal):', err.message);
+    return null;
+  }
+}
+```
+
+---
+
+## Task 2 — Run GNAF in parallel with BCC parcel fetch
+
+In the main handler, replace the sequential BCC parcel call with a parallel
+`Promise.all` that also resolves GNAF:
+
+```javascript
+// Run GNAF resolution and BCC parcel fetch in parallel — no added latency
+const [gnaf, bccParcel] = await Promise.all([
+  resolveGNAF(address),
+  fetchBCCParcel(address),
+]);
+```
+
+---
+
+## Task 3 — Pass GNAF coordinates as centroid override to `fetchBCCOverlays`
+
+Update the `fetchBCCOverlays` function signature to accept an optional
+centroid override:
+
+```javascript
+async function fetchBCCOverlays(geometry, centroidOverride = null) {
+  if (!geometry?.rings) return null;
+
+  // Prefer GNAF property centroid over calculated polygon centroid
+  const centroid = centroidOverride || getLotCentroid(geometry);
+  // ... rest of function unchanged
+}
+```
+
+Pass the override when calling:
+
+```javascript
+const centroidOverride = gnaf ? { x: gnaf.lng, y: gnaf.lat } : null;
+const bccOverlays = bccParcel?.geometry
+  ? await fetchBCCOverlays(bccParcel.geometry, centroidOverride)
+  : null;
+```
+
+---
+
+## Task 4 — Add GNAF to the response object
+
+In the final response build:
+
+```javascript
+response.gnaf = gnaf
+  ? { pid: gnaf.pid, lat: gnaf.lat, lng: gnaf.lng, geocodeType: gnaf.geocodeType }
+  : null;
+```
+
+---
+
+## Task 5 — Create `api/gnaf-resolve.js`
+
+Standalone endpoint for future use:
+
+```javascript
+'use strict';
+const { handleCors } = require('./config');
+
+module.exports = async function handler(req, res) {
+  if (handleCors(req, res)) return;
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+
+  const { address } = req.query;
+  if (!address) return res.status(400).json({ error: 'address required' });
+
+  try {
+    const clean = address.replace(/,?\s*Australia$/i, '').trim();
+
+    const searchResp = await fetch(
+      `https://api.addressr.io/addresses?q=${encodeURIComponent(clean)}`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+    const results = await searchResp.json();
+    if (!results?.length) return res.status(404).json({ error: 'Not found in GNAF' });
+
+    const pid = results[0].pid;
+    const detailResp = await fetch(
+      `https://api.addressr.io/addresses/${pid}`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+    const detail = await detailResp.json();
+    const geocode = detail.geocoding?.geocodes?.find(g => g.default)
+                 || detail.geocoding?.geocodes?.[0];
+
+    return res.status(200).json({
+      pid,
+      sla: results[0].sla,
+      lat: geocode?.latitude,
+      lng: geocode?.longitude,
+      geocodeType: geocode?.type?.name,
+      reliability: geocode?.reliability?.name,
+    });
+  } catch (err) {
+    console.error('[gnaf-resolve] error:', err.message);
+    return res.status(500).json({ error: 'GNAF resolve failed' });
+  }
+};
+```
+
+---
+
+## Task 6 — Update `scripts/test-bcc-overlays.js`
+
+Add GNAF check to each test case after the parcel lookup block:
+
+```javascript
+// GNAF resolution check
+try {
+  const gnafResp = await fetch(
+    `https://api.addressr.io/addresses?q=${encodeURIComponent(test.address)}`
+  );
+  const gnafData = await gnafResp.json();
+  const pid = gnafData[0]?.pid;
+  if (pid) {
+    const detailResp = await fetch(`https://api.addressr.io/addresses/${pid}`);
+    const detail = await detailResp.json();
+    const geocode = detail.geocoding?.geocodes?.find(g => g.default);
+    console.log(`  GNAF: ${pid} → ${geocode?.latitude}, ${geocode?.longitude}`);
+    if (test.expected?.gnafPid) {
+      checks.push(pid === test.expected.gnafPid);
+    }
+  } else {
+    console.log('  GNAF: no result (non-fatal)');
+  }
+} catch (e) {
+  console.log('  GNAF: error (non-fatal):', e.message);
+}
+```
+
+Add to Carindale test expected:
+```javascript
+expected: {
+  // existing...
+  gnafPid: 'GAQLD156422713',
+}
+```
+
+---
+
+## Task 7 — Update `DATA_SOURCES.md` in portfoliostate repo
+
+Add a new source block after the Google Geocoding + Places API section:
+
+```markdown
+### SOURCE: Addressr (GNAF API)
+Base URL:   https://api.addressr.io
+Auth:       None — free, no API key, no documented rate limits
+CORS:       Open — works from browser and server
+Coverage:   National — 15.9M addresses, all states and territories
+Update:     Quarterly (follows GNAF release cycle)
+Cost:       Free (open source, Apache 2.0)
+Notes:      Two-call pattern:
+              1. GET /addresses?q={address}  → returns [{ sla, pid, score }]
+              2. GET /addresses/{pid}        → returns geocoding.geocodes[].lat/lng
+            Property centroid from land registry — more accurate than Google
+            geocoding interpolation for lot boundary spatial queries.
+            Response time 212–455ms — run in parallel with BCC parcel fetch,
+            no added wall-clock latency.
+            Google Places retained for autocomplete UX (location-aware, faster).
+            GNAF PID is Australia's authoritative address identifier.
+```
+
+Add to the Field Inventory — Currently in product, after row 37:
+```
+| 38 | GNAF PID | Internal / Brief traceability | Addressr | National |
+| 39 | Property centroid lat/lng (GNAF) | BCC line-layer queries | Addressr | National |
+```
+
+---
+
+## Completion checklist
+
+- [x] `resolveGNAF()` added to `api/zone-lookup.js`
+- [x] GNAF + BCC parcel run in parallel via `Promise.all`
+- [x] `fetchBCCOverlays()` accepts and uses `centroidOverride`
+- [x] `gnaf.pid`, `gnaf.lat`, `gnaf.lng` present in zone-lookup response
+- [x] `api/gnaf-resolve.js` created
+- [x] Test script includes GNAF PID assertion for Carindale
+- [x] `node scripts/test-bcc-overlays.js` — 4/4 pass
+- [x] Graceful fallback confirmed: `gnaf: null` returned without error
+- [x] `DATA_SOURCES.md` updated in portfoliostate repo
+- [x] `OVERNIGHT_LOG.md` updated
+
+---
+
+## Do not touch
+Google Places autocomplete, Stripe, Supabase, email gate, COMING_SOON,
+buyers-brief streaming logic, all existing overlay layers.
+
+---
+
 ## Ideas / future sprints (not scheduled)
 
 - PDF generation for Buyer's Brief (v2) — Puppeteer or html-pdf-node
