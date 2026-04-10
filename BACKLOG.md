@@ -239,6 +239,369 @@ When unblocked:
 
 ---
 
+# Sprint 12 — ClearOffer Brief Architecture Overhaul
+*Repo: stevenpicton1979/buyerside (main branch)*
+*Local dev: `vercel dev --listen 3001` — never `npm run dev`*
+*Log all changes to `OVERNIGHT_LOG.md` with timestamps*
+
+---
+
+## Background
+
+The Buyer's Brief (`api/buyers-brief.js`) currently calls `fetchPropTechData()` which always returns stub data (`_stub: true`) with invented comparable sales. These fabricated numbers are passed to Claude with no instruction to treat them as illustrative — so Claude writes a confident analysis based on fake transactions. A test on a $1.8M property produced a $960k valuation. The paid Brief must not launch until this sprint is complete.
+
+---
+
+## Task 1 — Strip stub comparables from `getPropTechStub()`
+
+**File:** `api/buyers-brief.js`
+
+Find `getPropTechStub()`. Replace the entire function body with:
+
+```javascript
+function getPropTechStub() {
+  return {
+    _stub: true,
+    avm: null,
+    comparables: null,
+    suburbTimeseries: null,
+  };
+}
+```
+
+The `fetchPropTechData()` function itself does not change. Only the stub payload changes — avm and comparables must be null, never invented figures.
+
+---
+
+## Task 2 — Two-pass architecture: research then stream
+
+**File:** `api/buyers-brief.js`
+
+Web search is not compatible with streaming in a single Anthropic API call. The solution is two calls:
+
+- **Pass 1:** Non-streaming call with web search enabled. Claude searches for the current suburb median and recent suburb news, returns a research summary.
+- **Pass 2:** Streaming call (existing pattern). The research summary is injected into the prompt as additional context.
+
+### Step 2a — Add `runResearchPass()` function
+
+Add this new function to `api/buyers-brief.js`:
+
+```javascript
+async function runResearchPass(address, suburbStats) {
+  const suburb = extractSuburb(address);
+  const state = extractState(address) || 'QLD';
+
+  const researchPrompt = `You are researching an Australian property for a buyer's report. Use web search to find the following, then return a concise research summary.
+
+Property address: ${address}
+
+Search for:
+1. Current median house price for ${suburb || address}, ${state} — find a figure from propertyvalue.com.au, realestate.com.au suburb profiles, or domain.com.au suburb profiles. State the source and the figure.
+2. Any recent news affecting ${suburb || address} — infrastructure, rezoning, flood events, major development approvals (last 12 months).
+3. Any publicly available information about this specific property or street.
+
+Return your findings as a structured summary with these headings:
+- Suburb Median (source and figure)
+- Recent Suburb News
+- Property/Street Notes
+
+Be concise. If you cannot find something, say "Not found" — do not invent data.`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        messages: [{ role: 'user', content: researchPrompt }],
+      }),
+      signal: AbortSignal.timeout(30000),
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      console.warn('[buyers-brief] research pass failed:', response.status, err);
+      return null;
+    }
+
+    const data = await response.json();
+    const researchSummary = data.content
+      .filter(block => block.type === 'text')
+      .map(block => block.text)
+      .join('\n')
+      .trim();
+
+    console.log('[buyers-brief] research pass complete, length:', researchSummary.length);
+    return researchSummary || null;
+  } catch (err) {
+    console.warn('[buyers-brief] research pass error:', err.message);
+    return null;  // Non-fatal — Brief continues without research
+  }
+}
+```
+
+Add these two helper functions (used by `runResearchPass` and elsewhere):
+
+```javascript
+function extractSuburb(address) {
+  if (!address) return null;
+  const match = address.match(/,\s*([^,]+?)\s*(QLD|NSW|VIC|SA|WA|TAS|ACT|NT)?\s*\d{4}/i);
+  return match?.[1]?.trim() || null;
+}
+
+function extractState(address) {
+  if (!address) return null;
+  const match = address.match(/\b(QLD|NSW|VIC|SA|WA|TAS|ACT|NT)\b/i);
+  return match?.[1]?.toUpperCase() || null;
+}
+```
+
+### Step 2b — Call `runResearchPass()` in the main handler
+
+In the main `module.exports` handler, after the `Promise.all` that gathers data and before `buildBriefPrompt`, add:
+
+```javascript
+// Research pass — web search for suburb median and recent news
+const research = await runResearchPass(address, suburbStats);
+```
+
+Then pass `research` into `buildBriefPrompt`:
+
+```javascript
+const prompt = buildBriefPrompt({
+  address,
+  qualifiers: qualifiers || {},
+  zoneData,
+  suburbStats,
+  propTechData,
+  research,
+});
+```
+
+### Step 2c — Update `streamClaudeBrief()` 
+
+Change the function signature from:
+```javascript
+async function* streamClaudeBrief(prompt) {
+```
+To:
+```javascript
+async function* streamClaudeBrief(prompt) {  // signature unchanged
+```
+
+The prompt already contains the research by the time it reaches this function — no signature change needed. But make two changes inside the function body:
+
+1. Increase `max_tokens` from `2000` to `4000`
+2. Update model from `claude-sonnet-4-6` to `claude-sonnet-4-20250514`
+
+---
+
+## Task 3 — Rewrite `buildBriefPrompt()`
+
+**File:** `api/buyers-brief.js`
+
+Replace the entire `buildBriefPrompt()` function with:
+
+```javascript
+function buildBriefPrompt({ address, qualifiers, zoneData, suburbStats, propTechData, research }) {
+  const { renovationStatus = 'unknown', roadType = 'unknown' } = qualifiers;
+  const avm = propTechData?.avm;           // null when stubbed
+  const comparables = propTechData?.comparables;  // null when stubbed
+  const isStub = propTechData?._stub;
+
+  const f = (n) => n ? `$${Number(n).toLocaleString('en-AU')}` : 'unknown';
+
+  const suburbContext = suburbStats
+    ? `Suburb: ${suburbStats.suburb}. Median: ${f(suburbStats.median)}. Avg DOM: ${suburbStats.dom} days. 12-month growth: ${(suburbStats.growth12m * 100).toFixed(1)}%. 10yr CAGR: ${(suburbStats.cagr10yr * 100).toFixed(1)}%.`
+    : 'Suburb stats: not available from static table — use web research findings below.';
+
+  const avmContext = (!isStub && avm)
+    ? `AVM estimate: ${f(avm.estimate)} (range: ${f(avm.low)}–${f(avm.high)}, confidence: ${Math.round(avm.confidence * 100)}%).`
+    : 'AVM: not available — base valuation on suburb median from web research and overlay adjustments.';
+
+  const compContext = (!isStub && comparables && comparables.length > 0)
+    ? `COMPARABLE SALES (confirmed PropTechData):\n` + comparables.map((c, i) =>
+        `${i + 1}. ${c.address} — sold ${f(c.soldPrice)} on ${c.soldDate} (${c.beds}bd/${c.baths}ba, ${c.landSqm}m²)`
+      ).join('\n')
+    : 'COMPARABLE SALES: Not available in this report. Do not cite specific comparable transactions — not even illustrative ones.';
+
+  const overlays = zoneData?.overlays || {};
+  const floodText = overlays.flood?.affected ? `FLOOD RISK: ${overlays.flood.plain}` : 'No flood overlay.';
+  const bushfireText = overlays.bushfire?.affected ? `BUSHFIRE: ${overlays.bushfire.plain}` : 'No bushfire overlay.';
+  const heritageText = overlays.heritage?.listed ? `HERITAGE: ${overlays.heritage.plain}` : 'Not heritage listed.';
+  const noiseText = overlays.noise?.affected ? `AIRCRAFT NOISE: ${overlays.noise.plain}` : 'No aircraft noise overlay.';
+  const charText = overlays.character?.applicable ? `CHARACTER OVERLAY: ${overlays.character.plain}` : 'No character overlay.';
+
+  // School catchments — check ZoneIQ OpenAPI spec at https://zoneiq-sigma.vercel.app/api/openapi
+  // for exact field names. Adjust overlays.schools?.primary / overlays.schools?.secondary
+  // if the actual field names differ from these.
+  const primarySchool = overlays.schools?.primary;
+  const secondarySchool = overlays.schools?.secondary;
+  const schoolLines = [];
+  if (primarySchool) schoolLines.push(`Primary: ${primarySchool.name} (ICSEA ${primarySchool.icsea})`);
+  if (secondarySchool) schoolLines.push(`Secondary: ${secondarySchool.name} (ICSEA ${secondarySchool.icsea})`);
+  const schoolText = schoolLines.length > 0
+    ? `School catchments:\n${schoolLines.join('\n')}`
+    : 'School catchments: data not available.';
+
+  const qualifierText = (renovationStatus !== 'unknown' || roadType !== 'unknown')
+    ? `Buyer's property notes (from inspection): condition = ${renovationStatus}; road type = ${roadType}.`
+    : '';
+
+  const researchContext = research
+    ? `\nWEB RESEARCH (verified before writing):\n${research}`
+    : '\nWeb research: not available — rely on suburb stats above for valuation.';
+
+  return `You are an expert buyer's agent in Brisbane writing a paid Buyer's Brief ($149). You are direct, specific, and honest about what is confirmed data versus what is estimated.
+
+PROPERTY: ${address}
+${suburbContext}
+${avmContext}
+${qualifierText}
+
+OVERLAYS:
+${floodText}
+${bushfireText}
+${heritageText}
+${noiseText}
+${charText}
+${schoolText}
+
+${compContext}
+${researchContext}
+
+HONESTY RULES — follow exactly:
+- If comparable sales says "Not available", do NOT cite specific sales, prices, addresses or dates — not even illustrative ones. Write instead: "Comparable sales data is not available in this report. The valuation range is based on suburb-level data and property-specific adjustments."
+- If AVM says "not available", state the valuation is based on suburb median from web research.
+- When citing a figure from web research, briefly note the source (e.g. "according to realestate.com.au").
+- Condition modifier: Original = –5% to –10% vs median. Partially updated = at median. Fully renovated = +5% to +15%.
+- Road type modifier: Main road = –3% to –8%. Quiet street = neutral to +3%.
+- State valuation as a range, not a single number.
+
+Do not include any report header, reference number, preparer name, or date. Start directly with the first section heading.
+
+## Valuation Assessment
+State the recommended price range. Show your methodology — suburb median adjusted for condition and road type. Be explicit about what data you have and what you're estimating.
+
+## Comparable Sales
+If comparable sales data was provided above, analyse it. If not, write the honesty statement above and explain what the valuation is based on instead.
+
+## Risk Flags
+Cover each overlay present in plain English. What does each mean practically? What questions should the buyer ask?
+
+## Market Context
+What's happening in this suburb? Buyer's or seller's market? What does DOM and growth data tell us?
+
+## The Negotiation
+Based on suburb DOM and market conditions: what leverage does the buyer have? Give specific language they can use.
+
+## Your Opening Offer
+State a specific dollar figure recommendation for opening offer and walk-away price. Show the reasoning.
+
+## What the Agent Won't Tell You
+2–3 things the buyer should know that the listing agent won't volunteer.
+
+## 5–10 Year Outlook
+Based on suburb trajectory, overlays, and Brisbane infrastructure: what does this suburb look like in 2030–2035?
+
+Tone: confident, specific, like a sharp buyer's agent who has done hundreds of Brisbane deals. No disclaimers in the body — the legal disclaimer appears separately.`;
+}
+```
+
+---
+
+## Task 4 — Confirm school catchment field names from ZoneIQ
+
+**File:** `api/buyers-brief.js`
+
+The new `buildBriefPrompt()` reads `overlays.schools?.primary` and `overlays.schools?.secondary`. 
+
+Check the actual ZoneIQ response shape by fetching:
+```
+https://zoneiq-sigma.vercel.app/api/lookup?address=14+Riverview+Tce+Chelmer+QLD+4068
+```
+
+Check the OpenAPI spec at `https://zoneiq-sigma.vercel.app/api/openapi` for the `schools` / `school_catchments` field names.
+
+If the actual field path differs from `overlays.schools?.primary` / `overlays.schools?.secondary`, update the references in `buildBriefPrompt()` accordingly.
+
+Log the actual field shape to `OVERNIGHT_LOG.md`.
+
+---
+
+## Task 5 — Confirm error state is hidden on Brief completion
+
+**File:** `buyers-brief.html`
+
+The `setState()` function at line ~427 already handles this correctly — it explicitly sets `error-state` to `display:none` for all non-error states.
+
+Run a manual Brief test. If the error state div is still visible on successful completion, search the file for every reference to `error-state` and audit whether any code path sets it visible outside of `setState()`. Fix any found.
+
+---
+
+## Task 6 — Fix verdict meta-text in `api/verdict.js`
+
+**File:** `api/verdict.js`
+
+In `generateVerdict()`, find the `Rules:` block inside the prompt string. Replace it with:
+
+```
+Rules:
+- Exactly one sentence, maximum 25 words
+- Use specific numbers from the data
+- If DOM is well above suburb average: focus on that leverage
+- If price is well above median: note the gap
+- If flood overlay: mention it as a risk flag
+- Never say "fairly valued", "appears to be", or anything that sounds like a disclaimer
+- Sound like a smart friend texting you, not a report
+- CRITICAL: Never write "I don't have access to...", "Based on available data...", "As an AI...", or any meta-commentary. If data is limited, make your best assessment from what you have. The sentence must name a price or draw a conclusion.
+
+One sentence only:
+```
+
+---
+
+## Completion checklist
+
+```
+vercel dev --listen 3001
+```
+
+Test email: `steven.picton@googlemail.com` (has `converted_to_paid=true` — skip Stripe)
+Test address: any Brisbane address
+
+- [ ] Server log shows stub with `avm: null, comparables: null`
+- [ ] Server log shows `research pass complete` with non-zero length
+- [ ] Brief renders fully — all 8 sections present, not truncated
+- [ ] Brief does NOT cite specific comparable sale addresses, prices, or dates
+- [ ] Brief DOES include the honesty statement about comparables
+- [ ] Brief mentions a suburb median figure with a cited source
+- [ ] School catchments appear by name in the Brief
+- [ ] Error state div NOT visible on successful Brief completion
+- [ ] Verdict is a single sharp sentence with no meta-text
+- [ ] `OVERNIGHT_LOG.md` updated with timestamps
+
+---
+
+## Do not touch
+
+- Stripe (`api/create-checkout.js`, `api/stripe-webhook.js`)
+- Scout Report / ZoneIQ flow (`api/zone-lookup.js`, `report.html`)
+- Email gate
+- Supabase schema
+- Env vars
+- `COMING_SOON` — leave as-is
+- Qualifier questions — do not add beds/baths/land size; only condition and road type
+- `public/js/config.js`
+
+---
+
 ## Ideas / future sprints (not scheduled)
 
 - PDF generation for Buyer's Brief (v2) — Puppeteer or html-pdf-node
