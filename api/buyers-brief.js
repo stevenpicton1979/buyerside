@@ -10,6 +10,7 @@
 
 const { handleCors, PRODUCT, PRICING, getSuburbStats, supabaseFetch, BASE_URL } = require('./config');
 const { getDevFixture } = require('./dev-comparables-fixture');
+const { fetchPropertyData } = require('./lib/propertydata-client');
 
 module.exports = async function handler(req, res) {
   if (handleCors(req, res)) return;
@@ -153,14 +154,12 @@ async function verifyPayment(email, address, sessionId) {
   }
 }
 
+// Sprint 2: switched from direct ZoneIQ call to PropertyData (paid tier — all fields)
 async function fetchZoneIQ(address) {
   try {
-    const url = `${process.env.ZONEIQ_URL || 'https://zoneiq-sigma.vercel.app'}/api/lookup?address=${encodeURIComponent(address)}`;
-    const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
-    if (!resp.ok) throw new Error(`ZoneIQ ${resp.status}`);
-    return await resp.json();
+    return await fetchPropertyData(address, 'paid');
   } catch (err) {
-    console.warn('[buyers-brief] ZoneIQ error:', err.message);
+    console.warn('[buyers-brief] PropertyData error:', err.message);
     return null;
   }
 }
